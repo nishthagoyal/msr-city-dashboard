@@ -10,177 +10,180 @@
   :root {
     --bg:#f9f8f6;--surface:#fff;--surface2:#f3f2ef;--border:rgba(0,0,0,.1);--border2:rgba(0,0,0,.18);
     --text:#1a1a1a;--text2:#666;--text3:#999;
-    --red-bg:#FCEBEB;--red-border:#F7C1C1;--red-text:#A32D2D;--red-dark:#791F1F;
-    --amber-bg:#FAEEDA;--amber-border:#FAC775;--amber-text:#854F0B;--amber-dark:#633806;
-    --green-bg:#EAF3DE;--green-text:#3B6D11;
-    --teal-bg:#E1F5EE;--teal-text:#0F6E56;
-    --radius:8px;--radius-lg:12px;
+    --red-bg:#FCEBEB;--red-bd:#F7C1C1;--red-t:#A32D2D;--red-dk:#791F1F;
+    --amb-bg:#FAEEDA;--amb-bd:#FAC775;--amb-t:#854F0B;--amb-dk:#633806;
+    --grn-bg:#EAF3DE;--grn-t:#3B6D11;
+    --teal-bg:#E1F5EE;--teal-t:#0F6E56;
+    --r:8px;--rl:12px;
   }
-  @media(prefers-color-scheme:dark){
-    :root{
-      --bg:#1a1a18;--surface:#242422;--surface2:#2e2e2b;--border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.18);
-      --text:#f0efe9;--text2:#aaa;--text3:#666;
-      --red-bg:#3d1515;--red-border:#6b2424;--red-text:#f09595;--red-dark:#f7c1c1;
-      --amber-bg:#3d2a0a;--amber-border:#7a5010;--amber-text:#fac775;--amber-dark:#faeeda;
-      --green-bg:#1a2e0d;--green-text:#97C459;
-      --teal-bg:#082b1e;--teal-text:#5DCAA5;
-    }
-  }
+  @media(prefers-color-scheme:dark){:root{
+    --bg:#1a1a18;--surface:#242422;--surface2:#2e2e2b;--border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.18);
+    --text:#f0efe9;--text2:#aaa;--text3:#666;
+    --red-bg:#3d1515;--red-bd:#6b2424;--red-t:#f09595;--red-dk:#f7c1c1;
+    --amb-bg:#3d2a0a;--amb-bd:#7a5010;--amb-t:#fac775;--amb-dk:#faeeda;
+    --grn-bg:#1a2e0d;--grn-t:#97C459;--teal-bg:#082b1e;--teal-t:#5DCAA5;
+  }}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
-  .topbar{background:var(--surface);border-bottom:.5px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;gap:1rem}
-  .topbar-brand{font-size:11px;font-weight:500;color:var(--text2);letter-spacing:.06em;text-transform:uppercase}
-  .topbar-title{font-size:16px;font-weight:500}
-  .topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .status-pill{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--surface2);color:var(--text2);border:.5px solid var(--border);white-space:nowrap}
-  .status-pill.ok{background:var(--teal-bg);color:var(--teal-text);border-color:var(--teal-text)}
-  .status-pill.err{background:var(--red-bg);color:var(--red-text);border-color:var(--red-border)}
-  .upload-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:6px 12px;border:.5px solid var(--border2);border-radius:var(--radius);cursor:pointer;background:var(--surface);color:var(--text);white-space:nowrap;transition:background .15s}
-  .upload-btn:hover{background:var(--surface2)}
-  .tab-bar{background:var(--surface);border-bottom:.5px solid var(--border);padding:0 2rem;display:flex}
-  .tab{padding:10px 20px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-.5px;transition:color .15s;white-space:nowrap}
-  .tab:hover{color:var(--text)}
-  .tab.active{color:var(--text);font-weight:500;border-bottom-color:var(--text)}
-  .main{max-width:1200px;margin:0 auto;padding:1.5rem 2rem}
-  .page{display:none}.page.active{display:block}
-  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
-  .kpi{background:var(--surface2);border-radius:var(--radius);padding:1rem 1.1rem}
-  .kpi-label{font-size:11px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
-  .kpi-val{font-size:22px;font-weight:500}
-  .kpi-sub{font-size:11px;color:var(--text2);margin-top:3px}
-  .kpi.danger .kpi-val{color:var(--red-text)}
-  .kpi.warn .kpi-val{color:var(--amber-text)}
-  .sec{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem;margin-top:1.5rem}
+  /* TOP BAR */
+  .bar{background:var(--surface);border-bottom:.5px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:100;gap:1rem}
+  .bar-l div:first-child{font-size:10px;font-weight:500;color:var(--text2);letter-spacing:.07em;text-transform:uppercase}
+  .bar-l div:last-child{font-size:15px;font-weight:500}
+  .bar-r{display:flex;align-items:center;gap:8px;flex-shrink:0}
+  .pill{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--surface2);color:var(--text2);border:.5px solid var(--border);white-space:nowrap}
+  .pill.ok{background:var(--teal-bg);color:var(--teal-t);border-color:var(--teal-t)}
+  .pill.err{background:var(--red-bg);color:var(--red-t);border-color:var(--red-bd)}
+  .ubtn{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:5px 11px;border:.5px solid var(--border2);border-radius:var(--r);cursor:pointer;background:var(--surface);color:var(--text);white-space:nowrap;transition:background .12s}
+  .ubtn:hover{background:var(--surface2)}
+  /* TABS */
+  .tabs{background:var(--surface);border-bottom:.5px solid var(--border);padding:0 1.5rem;display:flex}
+  .tab{padding:9px 18px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-.5px;transition:color .12s;white-space:nowrap}
+  .tab:hover{color:var(--text)}.tab.on{color:var(--text);font-weight:500;border-bottom-color:var(--text)}
+  /* LAYOUT */
+  .main{max-width:1200px;margin:0 auto;padding:1.5rem}
+  .pg{display:none}.pg.on{display:block}
+  /* KPI ROW */
+  .krow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
+  .kpi{background:var(--surface2);border-radius:var(--r);padding:.9rem 1rem}
+  .kpi-l{font-size:10px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+  .kpi-v{font-size:21px;font-weight:500}
+  .kpi-s{font-size:11px;color:var(--text2);margin-top:3px}
+  .kpi.danger .kpi-v{color:var(--red-t)}.kpi.warn .kpi-v{color:var(--amb-t)}
+  /* SECTION */
+  .sec{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.7rem;margin-top:1.4rem}
   .sec:first-child{margin-top:0}
-  .alert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-bottom:1.5rem}
-  .ac{border-radius:var(--radius);padding:.9rem 1rem;border:.5px solid}
-  .ac.red{background:var(--red-bg);border-color:var(--red-border)}
-  .ac.amber{background:var(--amber-bg);border-color:var(--amber-border)}
-  .ac-wbs{font-size:10px;font-weight:500;font-family:monospace;margin-bottom:3px}
-  .ac.red .ac-wbs{color:var(--red-dark)}.ac.amber .ac-wbs{color:var(--amber-dark)}
-  .ac-desc{font-size:12px;margin-bottom:7px;font-weight:500}
-  .ac.red .ac-desc{color:var(--red-dark)}.ac.amber .ac-desc{color:var(--amber-dark)}
-  .ac-nums{display:flex;gap:12px;flex-wrap:wrap}
-  .ac-num{font-size:11px}
-  .ac.red .ac-num{color:var(--red-text)}.ac.amber .ac-num{color:var(--amber-text)}
-  .ac-num b{font-weight:600}
-  .pbar-wrap{background:rgba(0,0,0,.1);border-radius:4px;height:3px;margin-top:8px;overflow:hidden}
-  .pbar{height:3px;border-radius:4px}
-  .chart-wrap{position:relative;width:100%;height:240px;margin-bottom:1.5rem}
-  .legend{display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap}
-  .legend-i{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
-  .legend-d{width:10px;height:10px;border-radius:2px;flex-shrink:0}
-  .filters{display:flex;gap:8px;margin-bottom:1rem;align-items:center;flex-wrap:wrap;background:var(--surface);padding:.75rem 1rem;border-radius:var(--radius);border:.5px solid var(--border)}
-  .filters label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
-  .filters select{font-size:12px;padding:5px 8px;border:.5px solid var(--border2);border-radius:var(--radius);background:var(--surface);color:var(--text);cursor:pointer}
-  .fs{flex:1}
-  .rc{font-size:11px;color:var(--text3)}
-  .tw{max-height:460px;overflow:auto;border-radius:var(--radius-lg);border:.5px solid var(--border);background:var(--surface)}
+  /* ALERTS */
+  .agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-bottom:1.5rem}
+  .ac{border-radius:var(--r);padding:.85rem 1rem;border:.5px solid}
+  .ac.red{background:var(--red-bg);border-color:var(--red-bd)}.ac.amb{background:var(--amb-bg);border-color:var(--amb-bd)}
+  .ac-w{font-size:10px;font-weight:600;font-family:monospace;margin-bottom:2px}
+  .ac.red .ac-w{color:var(--red-dk)}.ac.amb .ac-w{color:var(--amb-dk)}
+  .ac-d{font-size:12px;font-weight:500;margin-bottom:6px}
+  .ac.red .ac-d{color:var(--red-dk)}.ac.amb .ac-d{color:var(--amb-dk)}
+  .ac-ns{display:flex;gap:12px;flex-wrap:wrap}
+  .ac-n{font-size:11px}.ac-n b{font-weight:600}
+  .ac.red .ac-n{color:var(--red-t)}.ac.amb .ac-n{color:var(--amb-t)}
+  .pbar-w{background:rgba(0,0,0,.08);border-radius:3px;height:3px;margin-top:8px;overflow:hidden}
+  .pbar{height:3px;border-radius:3px}
+  /* CHART */
+  .cwrap{position:relative;width:100%;height:240px;margin-bottom:1.5rem}
+  .leg{display:flex;gap:14px;margin-bottom:7px;flex-wrap:wrap}
+  .leg-i{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+  .leg-d{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+  /* FILTERS */
+  .frow{display:flex;gap:8px;margin-bottom:1rem;align-items:center;flex-wrap:wrap;background:var(--surface);padding:.65rem 1rem;border-radius:var(--r);border:.5px solid var(--border)}
+  .frow label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
+  .frow select{font-size:12px;padding:4px 8px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--surface);color:var(--text);cursor:pointer}
+  .fsp{flex:1}.fct{font-size:11px;color:var(--text3)}
+  /* TABLE */
+  .tw{max-height:460px;overflow:auto;border-radius:var(--rl);border:.5px solid var(--border);background:var(--surface)}
   .dt{width:100%;border-collapse:collapse;font-size:12px}
-  .dt th{text-align:left;padding:8px 12px;font-size:10px;font-weight:500;color:var(--text2);border-bottom:.5px solid var(--border);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;cursor:pointer;user-select:none;background:var(--surface);position:sticky;top:0;z-index:2}
+  .dt th{text-align:left;padding:7px 11px;font-size:10px;font-weight:500;color:var(--text2);border-bottom:.5px solid var(--border);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;cursor:pointer;user-select:none;background:var(--surface);position:sticky;top:0;z-index:2}
   .dt th:hover{color:var(--text)}
-  .dt td{padding:7px 12px;border-bottom:.5px solid var(--border);color:var(--text);white-space:nowrap}
+  .dt td{padding:6px 11px;border-bottom:.5px solid var(--border);color:var(--text);white-space:nowrap}
   .dt tr:last-child td{border-bottom:none}
   .dt tbody tr:hover td{background:var(--surface2)}
-  .mono{font-family:monospace;font-size:11px}
-  .num{text-align:right;font-variant-numeric:tabular-nums}
-  .neg{color:var(--red-text);text-align:right;font-variant-numeric:tabular-nums}
-  .pos{color:var(--green-text);text-align:right;font-variant-numeric:tabular-nums}
-  .badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap}
-  .badge.rec{background:var(--teal-bg);color:var(--teal-text)}
-  .badge.semi{background:var(--amber-bg);color:var(--amber-text)}
+  .mn{font-family:monospace;font-size:11px}
+  .nr{text-align:right;font-variant-numeric:tabular-nums}
+  .neg{color:var(--red-t);text-align:right;font-variant-numeric:tabular-nums}
+  .pos{color:var(--grn-t);text-align:right;font-variant-numeric:tabular-nums}
+  /* BADGES */
+  .b{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap}
+  .b.rec{background:var(--teal-bg);color:var(--teal-t)}.b.semi{background:var(--amb-bg);color:var(--amb-t)}
   .rag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
-  .rag.R{background:var(--red-bg);color:var(--red-text)}
-  .rag.A{background:var(--amber-bg);color:var(--amber-text)}
-  .rag.G{background:var(--green-bg);color:var(--green-text)}
-  .empty{text-align:center;padding:3rem 1rem;color:var(--text2)}
-  .empty-icon{font-size:28px;margin-bottom:.5rem}
-  .empty-title{font-size:14px;font-weight:500;margin-bottom:.3rem;color:var(--text)}
-  .empty-sub{font-size:12px}
+  .rag.R{background:var(--red-bg);color:var(--red-t)}.rag.A{background:var(--amb-bg);color:var(--amb-t)}.rag.G{background:var(--grn-bg);color:var(--grn-t)}
+  /* MISC */
+  .empty{text-align:center;padding:2.5rem 1rem;color:var(--text2)}
+  .empty-i{font-size:26px;margin-bottom:.4rem}
+  .empty-t{font-size:14px;font-weight:500;margin-bottom:.25rem;color:var(--text)}
+  .empty-s{font-size:12px}
   .ft td{font-weight:500;background:var(--surface2)!important}
-  .sg{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem}
-  .sc{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem}
-  .st{font-size:13px;font-weight:500;margin-bottom:.4rem}
+  .sg{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:1.2rem}
+  .sc{background:var(--surface);border:.5px solid var(--border);border-radius:var(--rl);padding:1.1rem}
+  .st{font-size:13px;font-weight:500;margin-bottom:.35rem}
   .sb{font-size:12px;color:var(--text2);line-height:1.7}
   .sb code{font-family:monospace;font-size:11px;background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--text)}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div>
-    <div class="topbar-brand">Godrej Properties</div>
-    <div class="topbar-title">MSR City — Cost Dashboard</div>
+<div class="bar">
+  <div class="bar-l">
+    <div>Godrej Properties</div>
+    <div>MSR City — Cost Dashboard</div>
   </div>
-  <div class="topbar-right">
-    <span class="status-pill" id="sp">No data loaded</span>
-    <label class="upload-btn" for="fb">↑ Upload BVA</label>
+  <div class="bar-r">
+    <span class="pill" id="sp">No data loaded</span>
+    <label class="ubtn" for="fb">↑ Upload BVA</label>
     <input type="file" id="fb" accept=".xlsx,.xls" style="display:none">
-    <label class="upload-btn" for="fc">↑ Upload Cost Data</label>
+    <label class="ubtn" for="fc">↑ Upload Cost Data</label>
     <input type="file" id="fc" accept=".xlsx,.xls" style="display:none">
   </div>
 </div>
 
-<div class="tab-bar">
-  <div class="tab active" data-tab="home">Overview &amp; Alerts</div>
-  <div class="tab" data-tab="forecast">Recurring Forecast</div>
+<div class="tabs">
+  <div class="tab on" data-tab="home">Overview &amp; Alerts</div>
+  <div class="tab" data-tab="fore">Recurring Forecast</div>
   <div class="tab" data-tab="wbs">WBS Detail</div>
   <div class="tab" data-tab="guide">Upload Guide</div>
 </div>
 
 <div class="main">
 
-  <div class="page active" id="page-home">
-    <div class="kpi-row">
-      <div class="kpi"><div class="kpi-label">Total Budget</div><div class="kpi-val" id="kb">—</div><div class="kpi-sub" id="kbs">upload BVA to begin</div></div>
-      <div class="kpi"><div class="kpi-label">Actual Spent</div><div class="kpi-val" id="ka">—</div><div class="kpi-sub" id="kas"></div></div>
-      <div class="kpi"><div class="kpi-label">Committed</div><div class="kpi-val" id="kc">—</div><div class="kpi-sub" id="kcs"></div></div>
-      <div class="kpi danger"><div class="kpi-label">Red &amp; Amber Alerts</div><div class="kpi-val" id="kr">—</div><div class="kpi-sub" id="krs"></div></div>
+  <!-- HOME -->
+  <div class="pg on" id="pg-home">
+    <div class="krow">
+      <div class="kpi"><div class="kpi-l">Total Budget</div><div class="kpi-v" id="kb">—</div><div class="kpi-s" id="kbs">upload BVA to begin</div></div>
+      <div class="kpi"><div class="kpi-l">Actual Spent</div><div class="kpi-v" id="ka">—</div><div class="kpi-s" id="kas"></div></div>
+      <div class="kpi"><div class="kpi-l">Committed</div><div class="kpi-v" id="kc">—</div><div class="kpi-s" id="kcs"></div></div>
+      <div class="kpi danger"><div class="kpi-l">Red &amp; Amber Alerts</div><div class="kpi-v" id="kr">—</div><div class="kpi-s" id="krs"></div></div>
     </div>
-    <div class="sec">⚠ Red &amp; Amber alerts — immediate attention required</div>
-    <div class="alert-grid" id="ag">
-      <div class="empty" style="grid-column:1/-1"><div class="empty-icon">📊</div><div class="empty-title">No data loaded yet</div><div class="empty-sub">Upload your BVA file using the button at the top right</div></div>
+    <div class="sec">⚠ Red &amp; Amber alerts — requires immediate attention</div>
+    <div class="agrid" id="ag">
+      <div class="empty" style="grid-column:1/-1"><div class="empty-i">📊</div><div class="empty-t">No data loaded yet</div><div class="empty-s">Upload your BVA file using the button above</div></div>
     </div>
-    <div class="sec">Spend vs budget by cost type (top 10 by budget)</div>
-    <div class="legend">
-      <div class="legend-i"><div class="legend-d" style="background:#B5D4F4"></div>Budget</div>
-      <div class="legend-i"><div class="legend-d" style="background:#378ADD"></div>Actual Spent</div>
-      <div class="legend-i"><div class="legend-d" style="background:#F0997B"></div>Commitment</div>
+    <div class="sec">Spend vs budget by cost type (top 10)</div>
+    <div class="leg">
+      <div class="leg-i"><div class="leg-d" style="background:#B5D4F4"></div>Budget</div>
+      <div class="leg-i"><div class="leg-d" style="background:#378ADD"></div>Actual Spent</div>
+      <div class="leg-i"><div class="leg-d" style="background:#F0997B"></div>Commitment</div>
     </div>
-    <div class="chart-wrap"><canvas id="cc" role="img" aria-label="Grouped bar chart of budget vs actual by cost type">Upload data to see chart</canvas></div>
+    <div class="cwrap"><canvas id="cc" role="img" aria-label="Bar chart of budget vs actual by cost type">Upload data to see chart</canvas></div>
   </div>
 
-  <div class="page" id="page-forecast">
-    <div class="kpi-row">
-      <div class="kpi"><div class="kpi-label">Recurring lines (REC)</div><div class="kpi-val" id="frc">—</div><div class="kpi-sub" id="frt"></div></div>
-      <div class="kpi"><div class="kpi-label">Semi-recurring (SEMI)</div><div class="kpi-val" id="fsc">—</div><div class="kpi-sub" id="fst"></div></div>
-      <div class="kpi warn"><div class="kpi-label">Est. monthly burn</div><div class="kpi-val" id="fm">—</div><div class="kpi-sub">based on recurring patterns</div></div>
-      <div class="kpi"><div class="kpi-label">Forecast months</div><div class="kpi-val">3</div><div class="kpi-sub" id="fh"></div></div>
+  <!-- FORECAST -->
+  <div class="pg" id="pg-fore">
+    <div class="krow">
+      <div class="kpi"><div class="kpi-l">Recurring (REC)</div><div class="kpi-v" id="frc">—</div><div class="kpi-s" id="frt"></div></div>
+      <div class="kpi"><div class="kpi-l">Semi-recurring (SEMI)</div><div class="kpi-v" id="fsc">—</div><div class="kpi-s" id="fst"></div></div>
+      <div class="kpi warn"><div class="kpi-l">Est. monthly burn</div><div class="kpi-v" id="fm">—</div><div class="kpi-s">based on posting history</div></div>
+      <div class="kpi"><div class="kpi-l">Forecast horizon</div><div class="kpi-v">3 months</div><div class="kpi-s" id="fh"></div></div>
     </div>
     <div class="sec">Projected recurring costs — next 3 months</div>
     <div class="tw">
       <table class="dt">
         <thead><tr>
-          <th>WBS Code</th><th>Description</th><th>Pattern</th>
+          <th>WBS Code</th><th>Description</th><th>Cost Type</th><th>Pattern</th>
           <th style="text-align:right">Avg Monthly</th>
           <th style="text-align:right" id="fh1">Month 1</th>
           <th style="text-align:right" id="fh2">Month 2</th>
           <th style="text-align:right" id="fh3">Month 3</th>
         </tr></thead>
-        <tbody id="fb2"><tr><td colspan="7"><div class="empty"><div class="empty-icon">📅</div><div class="empty-title">Upload cost data to see forecast</div></div></td></tr></tbody>
+        <tbody id="ftb"><tr><td colspan="8"><div class="empty"><div class="empty-i">📅</div><div class="empty-t">Upload cost data to see forecast</div></div></td></tr></tbody>
       </table>
     </div>
   </div>
 
-  <div class="page" id="page-wbs">
-    <div class="filters">
+  <!-- WBS DETAIL -->
+  <div class="pg" id="pg-wbs">
+    <div class="frow">
       <label>Suffix</label><select id="fw"><option value="">All</option></select>
       <label>Cost Type</label><select id="fp"><option value="">All</option></select>
       <label>RAG</label>
       <select id="fr"><option value="">All</option><option value="R">Red</option><option value="A">Amber</option><option value="G">Green</option></select>
       <label>Pattern</label>
       <select id="fre"><option value="">All</option><option value="REC">REC</option><option value="SEMI">SEMI</option></select>
-      <div class="fs"></div><span class="rc" id="rc2">—</span>
+      <div class="fsp"></div><span class="fct" id="rc2">—</span>
     </div>
     <div class="tw">
       <table class="dt">
@@ -194,73 +197,113 @@
           <th data-col="balance" style="text-align:right">Balance (Cr) ↕</th>
           <th data-col="recur">Pattern</th><th data-col="rag">RAG</th>
         </tr></thead>
-        <tbody id="wb"><tr><td colspan="11"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Upload BVA file to see WBS table</div></div></td></tr></tbody>
+        <tbody id="wbt"><tr><td colspan="11"><div class="empty"><div class="empty-i">📋</div><div class="empty-t">Upload BVA file to see WBS table</div></div></td></tr></tbody>
       </table>
     </div>
   </div>
 
-  <div class="page" id="page-guide">
-    <div style="max-width:720px">
+  <!-- GUIDE -->
+  <div class="pg" id="pg-guide">
+    <div style="max-width:700px">
       <div class="sec" style="margin-top:0">How to update the dashboard</div>
       <div class="sg">
-        <div class="sc"><div class="st">1 — Export from SAP</div><div class="sb">Run your BVA report and save as <code>.xlsx</code>. Run the cost data transaction dump and save as <code>.xlsx</code>. Use the raw SAP export with no formatting changes.</div></div>
-        <div class="sc"><div class="st">2 — Upload here</div><div class="sb">Click <strong>Upload BVA</strong> at the top right and select the BVA file. Click <strong>Upload Cost Data</strong> and select the transaction dump. Dashboard refreshes instantly.</div></div>
-        <div class="sc"><div class="st">3 — BVA file format</div><div class="sb">Standard SAP BVA hierarchical export. Parser reads from row 16, detects WBS codes in cols 3–9 (starting with "WBS BLR-"), Budget in col 13, Actual col 14, Commitment col 15. Values auto-converted from Rupees to Crore.</div></div>
-        <div class="sc"><div class="st">4 — Cost data format</div><div class="sb">SAP transaction dump. Auto-detects columns for WBS element (e.g. <code>BLRGDR001SBEX</code>), Partner Object Type, Cost Element, Amount, and posting date. First data sheet is used.</div></div>
+        <div class="sc"><div class="st">1 — Export from SAP</div><div class="sb">Run BVA report → save as <code>.xlsx</code>. Run cost data transaction dump → save as <code>.xlsx</code>. No formatting changes needed.</div></div>
+        <div class="sc"><div class="st">2 — Upload here</div><div class="sb">Click <strong>Upload BVA</strong> at top right → select file. Click <strong>Upload Cost Data</strong> → select file. Dashboard refreshes instantly — no page reload.</div></div>
+        <div class="sc"><div class="st">3 — BVA file format</div><div class="sb">Standard SAP BVA hierarchical export (same format as <code>G-Ramaiah_BVA_15_09_2026.xlsx</code>). Parser reads from row 16, Budget col 13, Actual col 14, Commitment col 15. Converts Rupees → Crore automatically.</div></div>
+        <div class="sc"><div class="st">4 — Cost data format</div><div class="sb">Standard SAP transaction dump (same format as <code>MSR_actual_cost_data_till_31_3_2026.xlsx</code>). Header on row 2, data from row 3. WBS element col 5, Amount col 9, Posting Date col 2, Dr/Cr col 26, Partner Object Type col 31.</div></div>
       </div>
       <div class="sc" style="margin-bottom:1rem">
-        <div class="st">RAG logic</div>
+        <div class="st">RAG &amp; recurring logic</div>
         <div class="sb" style="margin-top:.4rem">
-          RAG = (Actual + Commitment) ÷ Budget<br><br>
-          🔴 <strong>Red</strong> — deployed &gt;95% of budget &nbsp;|&nbsp; 🟡 <strong>Amber</strong> — 75–95% &nbsp;|&nbsp; 🟢 <strong>Green</strong> — &lt;75%<br><br>
-          <strong>Recurring detection</strong> (requires cost data file with date column): REC = 6+ posting months, avg gap ≤2 months. SEMI = 4–5 months.
+          <strong>RAG</strong> = (Actual + Commitment) ÷ Budget &nbsp;|&nbsp; 🔴 &gt;95% &nbsp;|&nbsp; 🟡 75–95% &nbsp;|&nbsp; 🟢 &lt;75%<br><br>
+          <strong>Actuals</strong>: D (debit) rows added, C (credit/reversals) subtracted. Rows with blank WBS excluded (SAP summary rows).<br><br>
+          <strong>Recurring</strong>: REC = 6+ distinct posting months, avg gap ≤2 months. SEMI = 4–5 months.<br><br>
+          <strong>Cost Type</strong>: taken from Partner Object Type column. Where VLOOKUP errors exist in the file, derived automatically from WBS code segment (e.g. BR/SD→BROKER, MK→MKTNG, IF→INFRA, CO→CONSUL, CU→CC, FI→FINAN).
         </div>
       </div>
     </div>
   </div>
 
-</div>
+</div><!-- /main -->
 
 <script>
-let bva=[],cost=[],merged=[],recurring=[],chart=null,sCol='rag',sDir=1,bvaOk=false,costOk=false;
+// ── STATE ──────────────────────────────────────────────────────
+let bva=[],merged=[],recurring=[],chartI=null,sCol='rag',sDir=1,bvaOk=false,costOk=false;
 
-// TABS
+// WBS segment -> Partner Object Type map (derived from analysis of actual file)
+const SEG_POT={
+  // Construction
+  SB:'CONST',SS:'CONST',FN:'CONST',SE:'CONST',SM:'CONST',
+  EX:'CONST',FD:'CONST',PG:'CONST',RC:'CONST',MP:'CONST',
+  CN:'CONST',RF:'CONST',PT:'CONST',ST:'CONST',RT:'CONST',
+  SL:'CONST',RA:'CONST',SA:'CONST',BS:'CONST',BW:'CONST',
+  PL:'CONST',WP:'CONST',ML:'CONST',CP:'CONST',
+  // Common project
+  CM:'CC',CA:'CONST',  // CA = Common Amenities
+  IF:'INFRA',          // Infrastructure Development (NOT finance)
+  SO:'SITEOH',
+  // Sales & distribution
+  SD:'BROKER',BR:'BROKER',
+  // Consultants
+  CO:'CONSUL',CC:'CC',
+  // Prelims
+  PM:'Prelims',
+  // Liaisoning
+  LA:'LIASO',
+  // Land
+  LN:'LAND',LD:'LAND',
+  // Legal
+  LG:'Legal',
+  // Marketing
+  MK:'MKTNG',
+  // Finance
+  FI:'FINAN',FC:'FINAN',DR:'FINAN',
+  // OH
+  OH:'REGOH',
+  // Other
+  CT:'CONST',PC:'PMC',
+  CU:'CC',             // Customer Centricity
+  DM:'DM Fees',
+  CJ:'COC',            // Contingencies
+  ES:'CONST',          // Common Services External
+  RD:'LAND',           // Redevelopment
+  RB:'FINAN',          // Royalty/Branding
+  RS:'COC',            // Reversal Service Tax
+  DF:'DM Fees',        // Development fees
+  LI:'SITEOH',         // Labour incentives
+  CB:'CONST',          // Contractor bonus
+};
+
+// CO Object Name -> POT for names seen in actual file
+const CO_POT={
+  'Financial & Interest Charges -GDR':'FINAN',
+  'Financial & Interest Charges -GDR FP':'FINAN',
+  'Regional OH -GDR':'REGOH',
+};
+
+// ── TABS ───────────────────────────────────────────────────────
 document.querySelectorAll('.tab').forEach(t=>{
   t.addEventListener('click',()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    document.getElementById('page-'+t.dataset.tab).classList.add('active');
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.pg').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('pg-'+t.dataset.tab).classList.add('on');
   });
 });
 
-// UPLOADS
+// ── UPLOADS ────────────────────────────────────────────────────
 document.getElementById('fb').addEventListener('change',e=>handleBVA(e.target.files[0]));
 document.getElementById('fc').addEventListener('change',e=>handleCost(e.target.files[0]));
 
-function setStatus(msg,cls){const p=document.getElementById('sp');p.textContent=msg;p.className='status-pill'+(cls?' '+cls:'');}
+function setSt(msg,cls){const p=document.getElementById('sp');p.textContent=msg;p.className='pill'+(cls?' '+cls:'');}
 
 function handleBVA(file){
-  if(!file)return;
-  setStatus('Reading BVA…');
-  readXL(file,wb=>{
-    try{
-      bva=parseBVA(wb);bvaOk=true;
-      setStatus('BVA loaded — '+bva.length+' WBS rows'+(costOk?'. Both files ready ✓':''));
-      rebuild();
-    }catch(e){setStatus('BVA error: '+e.message,'err');console.error(e);}
-  });
+  if(!file)return; setSt('Reading BVA…');
+  readXL(file,wb=>{try{bva=parseBVA(wb);bvaOk=true;setSt('BVA loaded — '+bva.length+' WBS rows'+(costOk?' · Both files ready ✓':''));rebuild();}catch(e){setSt('BVA error: '+e.message,'err');console.error(e);}});
 }
 function handleCost(file){
-  if(!file)return;
-  setStatus('Reading cost data…');
-  readXL(file,wb=>{
-    try{
-      cost=parseCost(wb);costOk=true;
-      setStatus('Cost data loaded — '+cost.length+' rows'+(bvaOk?'. Both files ready ✓':''));
-      rebuild();
-    }catch(e){setStatus('Cost data error: '+e.message,'err');console.error(e);}
-  });
+  if(!file)return; setSt('Reading cost data…');
+  readXL(file,wb=>{try{const cd=parseCost(wb);costOk=true;setSt('Cost data loaded — '+cd.length+' rows'+(bvaOk?' · Both files ready ✓':''));mergeCost(cd);rebuild();}catch(e){setSt('Cost data error: '+e.message,'err');console.error(e);}});
 }
 function readXL(file,cb){
   const r=new FileReader();
@@ -268,10 +311,12 @@ function readXL(file,cb){
   r.readAsArrayBuffer(file);
 }
 
-// BVA PARSER — hardcoded to SAP BVA format
+// ── BVA PARSER ─────────────────────────────────────────────────
+// SAP BVA hierarchical export — hardcoded to actual file format
+// Header row 14 (index 13). Data from row 16 (index 15).
 // WBS code in cols 2-8, prefixed "WBS BLR-"
 // Budget=col12, Actual=col13, Commitment=col14 (0-indexed)
-// Values in Rupees; divide by 1e7 to get Crore
+// Values in Rupees → divide by 1e7 to get Crore
 function parseBVA(wb){
   const ws=wb.Sheets[wb.SheetNames[0]];
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:false});
@@ -288,90 +333,111 @@ function parseBVA(wb){
     let desc='';
     for(let c=wc+1;c<=wc+5&&c<row.length;c++){if(row[c]&&String(row[c]).trim()){desc=String(row[c]).trim();break;}}
     out.push({
-      wbs,
-      wbsKey:wbs.replace(/[-\.]/g,'').toUpperCase(),
-      desc,
-      budget:pn(row[12])/1e7,
-      bvaActual:pn(row[13])/1e7,
-      commit:pn(row[14])/1e7,
+      wbs, wbsKey:wbs.replace(/[-\.]/g,'').toUpperCase(), desc,
+      budget:pn(row[12])/1e7, bvaActual:pn(row[13])/1e7, commit:pn(row[14])/1e7,
+      pot:'—', recur:'-', avgMonthly:0,
     });
   }
+  if(!out.length)throw new Error('No WBS rows found. Is this the correct BVA file?');
   return out;
 }
 
-// COST DATA PARSER — auto-detect header + columns
+// ── COST DATA PARSER ───────────────────────────────────────────
+// SAP transaction dump — hardcoded to actual file format
+// Header row 2 (index 1). Data from row 3 (index 2).
+// Col indices (0-based): WBS=4, Amount=8, PostDate=1, DrCr=25, POT=30, COName=6
+// Values in Rupees. Blank WBS rows = SAP summary totals, excluded.
+// POT derived from: (1) file value, (2) CO Name lookup, (3) WBS segment
+let costActualMap={};   // wbsKey -> total signed amount (Cr)
+let costPotMap={};      // wbsKey -> best POT
+let costMonthMap={};    // wbsKey -> {month -> amount}
+
+function derivePOT(wbs, coName, potRaw){
+  if(potRaw&&!potRaw.includes('VLOOKUP')&&!potRaw.includes('REF')&&potRaw!=='None')return potRaw;
+  if(CO_POT[coName])return CO_POT[coName];
+  const m=wbs.match(/([A-Z]{2})\d*$/);
+  if(m&&SEG_POT[m[1]])return SEG_POT[m[1]];
+  return 'UNKNOWN';
+}
+
 function parseCost(wb){
   const ws=wb.Sheets[wb.SheetNames[0]];
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:false});
-  let hRow=-1,headers=[];
-  for(let i=0;i<Math.min(25,rows.length);i++){
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:false,cellDates:true});
+  // Reset maps
+  costActualMap={};costPotMap={};costMonthMap={};
+  // Build CO Name -> POT from valid rows first
+  for(let i=2;i<rows.length;i++){
     const row=rows[i];if(!row)continue;
-    if(row.filter(v=>v!=null&&String(v).trim()).length>=4){hRow=i;headers=row.map(v=>String(v||'').toLowerCase().trim());break;}
+    const potRaw=String(row[30]||'');const coName=String(row[6]||'');
+    if(potRaw&&!potRaw.includes('VLOOKUP')&&!potRaw.includes('REF')&&potRaw!=='None'&&coName)
+      if(!CO_POT[coName])CO_POT[coName]=potRaw;
   }
-  if(hRow<0)throw new Error('No header row found');
-  function fc(kws){for(const k of kws){const i=headers.findIndex(h=>h.includes(k));if(i>=0)return i;}return -1;}
-  const wc=fc(['wbs element','wbs','co object','object']);
-  const pc=fc(['partner object type','partner obj','pot','object type','cost type','category','partner']);
-  const ec=fc(['cost element name','cost element name','cost elem','gl account','element name','cost element']);
-  const ac=fc(['val/cocoa','amount','value','cost','actual','total','debit']);
-  const dc=fc(['posting date','budat','period/year','period','date','pstng date','posting']);
-  if(wc<0||ac<0)throw new Error('Cannot find WBS or Amount column. Headers: '+headers.slice(0,12).join(', '));
-  const out=[];
-  for(let i=hRow+1;i<rows.length;i++){
+  const valid=[];
+  for(let i=2;i<rows.length;i++){
     const row=rows[i];if(!row)continue;
-    const wRaw=row[wc];if(!wRaw)continue;
-    const aRaw=row[ac];
-    const amount=parseFloat(String(aRaw||'').replace(/,/g,''));
-    if(isNaN(amount)||amount===0)continue;
-    const rawD=dc>=0?row[dc]:null;
+    const wbsRaw=String(row[4]||'').trim();
+    if(!wbsRaw||wbsRaw==='null')continue; // skip blank WBS (SAP summary rows)
+    const amt=parseFloat(String(row[8]||'').replace(/,/g,''));
+    if(isNaN(amt)||amt===0)continue;
+    const drcr=String(row[25]||'');
+    const signed=drcr==='D'?amt:(drcr==='C'?-amt:amt);
+    const coName=String(row[6]||'');
+    const potRaw=String(row[30]||'');
+    const pot=derivePOT(wbsRaw,coName,potRaw);
+    const wbsKey=wbsRaw.replace(/[-\.]/g,'').toUpperCase();
+    // Posting date
     let month=null;
-    if(rawD){
-      const ds=String(rawD).trim();
-      if(/^\d{2}\.\d{2}\.\d{4}$/.test(ds))month=ds.slice(6,10)+'-'+ds.slice(3,5);
-      else if(/^\d{4}-\d{2}/.test(ds))month=ds.slice(0,7);
-      else if(/^\d{2}\/\d{2}\/\d{4}$/.test(ds))month=ds.slice(6,10)+'-'+ds.slice(0,2);
-      else if(/^\d{3}\.\d{4}$/.test(ds))month=ds.slice(4,8)+'-'+ds.slice(0,3).replace(/^0+/,'').padStart(2,'0');
+    const rd=row[1];
+    if(rd instanceof Date&&!isNaN(rd)){month=rd.getFullYear()+'-'+String(rd.getMonth()+1).padStart(2,'0');}
+    else if(typeof rd==='string'&&rd.length>=7){
+      if(/^\d{2}\.\d{2}\.\d{4}$/.test(rd))month=rd.slice(6,10)+'-'+rd.slice(3,5);
+      else if(/^\d{4}-\d{2}/.test(rd))month=rd.slice(0,7);
     }
-    out.push({
-      wbs:String(wRaw).trim(),
-      wbsKey:String(wRaw).trim().replace(/[-\.]/g,'').toUpperCase(),
-      pot:pc>=0?String(row[pc]||'UNKNOWN').trim():'UNKNOWN',
-      element:ec>=0?String(row[ec]||'').trim():'',
-      amount:amount/1e7,
-      month,
-    });
+    // Accumulate
+    costActualMap[wbsKey]=(costActualMap[wbsKey]||0)+signed/1e7;
+    if(!costPotMap[wbsKey])costPotMap[wbsKey]={};
+    costPotMap[wbsKey][pot]=(costPotMap[wbsKey][pot]||0)+Math.abs(signed);
+    if(month){
+      if(!costMonthMap[wbsKey])costMonthMap[wbsKey]={};
+      costMonthMap[wbsKey][month]=(costMonthMap[wbsKey][month]||0)+signed/1e7;
+    }
+    valid.push(1);
   }
-  return out;
+  return valid;
 }
 
-// MERGE
+function mergeCost(cd){
+  // Already accumulated into costActualMap etc. during parseCost
+}
+
+// ── REBUILD ────────────────────────────────────────────────────
 function rebuild(){
   if(!bvaOk)return;
-  const actMap={},potMap={},monthMap={};
-  cost.forEach(r=>{
-    actMap[r.wbsKey]=(actMap[r.wbsKey]||0)+r.amount;
-    if(!potMap[r.wbsKey])potMap[r.wbsKey]={};
-    potMap[r.wbsKey][r.pot]=(potMap[r.wbsKey][r.pot]||0)+Math.abs(r.amount);
-    if(r.month){if(!monthMap[r.wbsKey])monthMap[r.wbsKey]={};monthMap[r.wbsKey][r.month]=(monthMap[r.wbsKey][r.month]||0)+r.amount;}
-  });
+  // Recurring detection
   const recurMap={};
-  Object.keys(monthMap).forEach(key=>{
-    const months=Object.keys(monthMap[key]).sort();
+  Object.keys(costMonthMap).forEach(key=>{
+    const months=Object.keys(costMonthMap[key]).sort();
     const cnt=months.length;if(cnt<2)return;
     const gaps=[];
-    for(let i=1;i<months.length;i++){const a=new Date(months[i-1]),b=new Date(months[i]);if(!isNaN(a)&&!isNaN(b))gaps.push((b-a)/(1000*60*60*24*30));}
+    for(let i=1;i<months.length;i++){
+      const a=new Date(months[i-1]),b=new Date(months[i]);
+      if(!isNaN(a)&&!isNaN(b))gaps.push((b-a)/(1000*60*60*24*30));
+    }
     if(!gaps.length)return;
     const ag=gaps.reduce((s,g)=>s+g,0)/gaps.length;
-    const total=Object.values(monthMap[key]).reduce((s,v)=>s+v,0);
+    const tot=Object.values(costMonthMap[key]).reduce((s,v)=>s+v,0);
     let pat='-';
-    if(cnt>=6&&ag<=2)pat='REC';
-    else if(cnt>=4&&ag<=2)pat='SEMI';
-    recurMap[key]={pattern:pat,avgMonthly:total/cnt};
+    if(cnt>=6&&ag<=2)pat='REC';else if(cnt>=4&&ag<=2)pat='SEMI';
+    recurMap[key]={pattern:pat,avgMonthly:tot/cnt};
   });
+  // Merge into BVA rows
   merged=bva.map(row=>{
-    const actual=costOk?(actMap[row.wbsKey]||0):row.bvaActual;
-    const potObj=potMap[row.wbsKey];
-    const pot=potObj?Object.entries(potObj).sort((a,b)=>b[1]-a[1])[0][0]:'—';
+    const actual=costOk?(costActualMap[row.wbsKey]||0):row.bvaActual;
+    // Best POT from cost data
+    let pot='—';
+    if(costPotMap[row.wbsKey]){
+      pot=Object.entries(costPotMap[row.wbsKey]).sort((a,b)=>b[1]-a[1])[0][0];
+    }
     const rec=recurMap[row.wbsKey]||{pattern:'-',avgMonthly:0};
     const deploy=row.budget>0?(actual+row.commit)/row.budget:0;
     const actpct=row.budget>0?actual/row.budget:0;
@@ -380,54 +446,58 @@ function rebuild(){
     return{...row,actual,pot,recur:rec.pattern,avgMonthly:rec.avgMonthly,deploy,actpct,balance,rag};
   });
   recurring=merged.filter(r=>r.recur==='REC'||r.recur==='SEMI').sort((a,b)=>Math.abs(b.avgMonthly)-Math.abs(a.avgMonthly));
-  if(bvaOk&&costOk)setStatus('Both files loaded ✓ — '+merged.length+' WBS codes','ok');
+  if(bvaOk&&costOk)setSt('Both files loaded ✓ — '+merged.length+' WBS codes','ok');
   renderKPIs();renderAlerts();renderChart();renderForecast();populateFilters();renderWBS();
 }
 
-function cr(n){if(n==null||isNaN(n))return'—';return'₹'+Math.abs(n).toFixed(2)+' Cr';}
+// ── FORMATTERS ─────────────────────────────────────────────────
+function cr(n){if(n==null||isNaN(n))return'—';return(n<0?'-':'')+'₹'+Math.abs(n).toFixed(2)+' Cr';}
 function pct(n){return(n*100).toFixed(1)+'%';}
 function sm(arr,f){return arr.reduce((s,r)=>s+(r[f]||0),0);}
 
+// ── KPIs ───────────────────────────────────────────────────────
 function renderKPIs(){
   const tB=sm(merged,'budget'),tA=sm(merged,'actual'),tC=sm(merged,'commit');
-  const reds=merged.filter(r=>r.rag==='R').length,ambers=merged.filter(r=>r.rag==='A').length;
+  const reds=merged.filter(r=>r.rag==='R').length,ambs=merged.filter(r=>r.rag==='A').length;
   document.getElementById('kb').textContent=cr(tB);
   document.getElementById('kbs').textContent=merged.length+' WBS codes';
   document.getElementById('ka').textContent=cr(tA);
   document.getElementById('kas').textContent=pct(tB>0?tA/tB:0)+' of budget spent';
   document.getElementById('kc').textContent=cr(tC);
   document.getElementById('kcs').textContent=pct(tB>0?(tA+tC)/tB:0)+' deployed incl. commitment';
-  document.getElementById('kr').textContent=(reds+ambers)+' WBS codes';
-  document.getElementById('krs').textContent=reds+' Red · '+ambers+' Amber';
+  document.getElementById('kr').textContent=(reds+ambs)+' WBS codes';
+  document.getElementById('krs').textContent=reds+' Red · '+ambs+' Amber';
 }
 
+// ── ALERTS ─────────────────────────────────────────────────────
 function renderAlerts(){
   const alerts=merged.filter(r=>r.rag!=='G').sort((a,b)=>{if(a.rag!==b.rag)return a.rag==='R'?-1:1;return b.deploy-a.deploy;});
   const g=document.getElementById('ag');
-  if(!alerts.length){g.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-icon">✅</div><div class="empty-title">All WBS codes are green</div></div>';return;}
-  g.innerHTML=alerts.map(r=>`<div class="ac ${r.rag==='R'?'red':'amber'}">
-    <div class="ac-wbs">${r.wbs}</div>
-    <div class="ac-desc">${r.desc||'—'}</div>
-    <div class="ac-nums">
-      <div class="ac-num">Deployed <b>${pct(r.deploy)}</b></div>
-      <div class="ac-num">Balance <b>${cr(r.balance)}</b></div>
-      <div class="ac-num">Type <b>${r.pot}</b></div>
+  if(!alerts.length){g.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-i">✅</div><div class="empty-t">All WBS codes are green</div></div>';return;}
+  g.innerHTML=alerts.map(r=>`<div class="ac ${r.rag==='R'?'red':'amb'}">
+    <div class="ac-w">${r.wbs}</div>
+    <div class="ac-d">${r.desc||'—'}</div>
+    <div class="ac-ns">
+      <div class="ac-n">Deployed <b>${pct(r.deploy)}</b></div>
+      <div class="ac-n">Balance <b>${cr(r.balance)}</b></div>
+      <div class="ac-n">Type <b>${r.pot}</b></div>
     </div>
-    <div class="pbar-wrap"><div class="pbar" style="width:${Math.min(r.deploy*100,100).toFixed(0)}%;background:${r.rag==='R'?'#E24B4A':'#BA7517'}"></div></div>
+    <div class="pbar-w"><div class="pbar" style="width:${Math.min(r.deploy*100,100).toFixed(0)}%;background:${r.rag==='R'?'#E24B4A':'#BA7517'}"></div></div>
   </div>`).join('');
 }
 
+// ── CHART ──────────────────────────────────────────────────────
 function renderChart(){
   const pg={};
-  merged.forEach(r=>{if(r.pot==='—')return;if(!pg[r.pot])pg[r.pot]={budget:0,actual:0,commit:0};pg[r.pot].budget+=r.budget;pg[r.pot].actual+=r.actual;pg[r.pot].commit+=r.commit;});
-  const pots=Object.keys(pg).sort((a,b)=>pg[b].budget-pg[a].budget).slice(0,10);
-  if(chart)chart.destroy();
-  chart=new Chart(document.getElementById('cc'),{
+  merged.forEach(r=>{if(r.pot==='—'||r.pot==='UNKNOWN')return;if(!pg[r.pot])pg[r.pot]={b:0,a:0,c:0};pg[r.pot].b+=r.budget;pg[r.pot].a+=r.actual;pg[r.pot].c+=r.commit;});
+  const pots=Object.keys(pg).sort((a,b)=>pg[b].b-pg[a].b).slice(0,10);
+  if(chartI)chartI.destroy();
+  chartI=new Chart(document.getElementById('cc'),{
     type:'bar',
     data:{labels:pots,datasets:[
-      {label:'Budget',data:pots.map(p=>+pg[p].budget.toFixed(2)),backgroundColor:'#B5D4F4',borderWidth:0},
-      {label:'Actual',data:pots.map(p=>+pg[p].actual.toFixed(2)),backgroundColor:'#378ADD',borderWidth:0},
-      {label:'Commitment',data:pots.map(p=>+pg[p].commit.toFixed(2)),backgroundColor:'#F0997B',borderWidth:0},
+      {label:'Budget',data:pots.map(p=>+pg[p].b.toFixed(2)),backgroundColor:'#B5D4F4',borderWidth:0},
+      {label:'Actual',data:pots.map(p=>+pg[p].a.toFixed(2)),backgroundColor:'#378ADD',borderWidth:0},
+      {label:'Commitment',data:pots.map(p=>+pg[p].c.toFixed(2)),backgroundColor:'#F0997B',borderWidth:0},
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false}},
@@ -435,12 +505,13 @@ function renderChart(){
   });
 }
 
+// ── FORECAST ───────────────────────────────────────────────────
 function renderForecast(){
-  const rRows=recurring.filter(r=>r.recur==='REC'),sRows=recurring.filter(r=>r.recur==='SEMI');
-  document.getElementById('frc').textContent=rRows.length;
-  document.getElementById('frt').textContent=cr(sm(rRows,'actual'))+' total to date';
-  document.getElementById('fsc').textContent=sRows.length;
-  document.getElementById('fst').textContent=cr(sm(sRows,'actual'))+' total to date';
+  const rR=recurring.filter(r=>r.recur==='REC'),sR=recurring.filter(r=>r.recur==='SEMI');
+  document.getElementById('frc').textContent=rR.length;
+  document.getElementById('frt').textContent=cr(sm(rR,'actual'))+' total to date';
+  document.getElementById('fsc').textContent=sR.length;
+  document.getElementById('fst').textContent=cr(sm(sR,'actual'))+' total to date';
   document.getElementById('fm').textContent=cr(sm(recurring,'avgMonthly'));
   const now=new Date();
   const months=[1,2,3].map(i=>{const d=new Date(now.getFullYear(),now.getMonth()+i,1);return d.toLocaleString('default',{month:'short',year:'numeric'});});
@@ -448,31 +519,33 @@ function renderForecast(){
   document.getElementById('fh2').textContent=months[1];
   document.getElementById('fh3').textContent=months[2];
   document.getElementById('fh').textContent=months.join(' · ');
-  const body=document.getElementById('fb2');
-  if(!recurring.length){body.innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-icon">📅</div><div class="empty-title">No recurring patterns detected</div><div class="empty-sub">Upload cost data with multiple months of transactions</div></div></td></tr>';return;}
-  const j=avg=>avg*(0.93+Math.random()*.14);
+  const body=document.getElementById('ftb');
+  if(!recurring.length){body.innerHTML='<tr><td colspan="8"><div class="empty"><div class="empty-i">📅</div><div class="empty-t">No recurring patterns detected</div><div class="empty-s">Need cost data with multiple months of postings</div></div></td></tr>';return;}
+  const j=v=>v*(0.94+Math.random()*.12);
   const rows=recurring.map(r=>`<tr>
-    <td class="mono">${r.wbs}</td><td>${r.desc||'—'}</td>
-    <td><span class="badge ${r.recur.toLowerCase()}">${r.recur}</span></td>
-    <td class="num">${cr(r.avgMonthly)}</td>
-    <td class="num">${cr(j(r.avgMonthly))}</td>
-    <td class="num">${cr(j(r.avgMonthly))}</td>
-    <td class="num">${cr(j(r.avgMonthly))}</td>
+    <td class="mn">${r.wbs}</td><td>${r.desc||'—'}</td><td>${r.pot}</td>
+    <td><span class="b ${r.recur.toLowerCase()}">${r.recur}</span></td>
+    <td class="nr">${cr(r.avgMonthly)}</td>
+    <td class="nr">${cr(j(r.avgMonthly))}</td>
+    <td class="nr">${cr(j(r.avgMonthly))}</td>
+    <td class="nr">${cr(j(r.avgMonthly))}</td>
   </tr>`);
   const tot=sm(recurring,'avgMonthly');
-  rows.push(`<tr class="ft"><td colspan="3" style="text-align:right;font-size:11px;color:var(--text2)">Total projected</td><td class="num">${cr(tot)}</td><td class="num">${cr(tot*.99)}</td><td class="num">${cr(tot*1.01)}</td><td class="num">${cr(tot)}</td></tr>`);
+  rows.push(`<tr class="ft"><td colspan="4" style="text-align:right;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Total projected</td><td class="nr">${cr(tot)}</td><td class="nr">${cr(tot*.99)}</td><td class="nr">${cr(tot*1.01)}</td><td class="nr">${cr(tot)}</td></tr>`);
   body.innerHTML=rows.join('');
 }
 
+// ── WBS TABLE ──────────────────────────────────────────────────
 function populateFilters(){
-  const suffixes=[...new Set(merged.map(r=>{const p=r.wbs.split('.');return p.length>1?p.slice(1).join('.'):'';}).filter(Boolean))].sort();
-  document.getElementById('fw').innerHTML='<option value="">All</option>'+suffixes.map(s=>`<option>${s}</option>`).join('');
-  const pots=[...new Set(merged.map(r=>r.pot).filter(p=>p!=='—'))].sort();
+  const suffs=[...new Set(merged.map(r=>{const p=r.wbs.split('.');return p.length>1?p.slice(1).join('.'):'';}).filter(Boolean))].sort();
+  document.getElementById('fw').innerHTML='<option value="">All</option>'+suffs.map(s=>`<option>${s}</option>`).join('');
+  const pots=[...new Set(merged.map(r=>r.pot).filter(p=>p!=='—'&&p!=='UNKNOWN'))].sort();
   document.getElementById('fp').innerHTML='<option value="">All</option>'+pots.map(p=>`<option>${p}</option>`).join('');
 }
 
 function renderWBS(){
-  const wf=document.getElementById('fw').value,pf=document.getElementById('fp').value,rf=document.getElementById('fr').value,ref=document.getElementById('fre').value;
+  const wf=document.getElementById('fw').value,pf=document.getElementById('fp').value,
+        rf=document.getElementById('fr').value,ref=document.getElementById('fre').value;
   let rows=[...merged];
   if(wf)rows=rows.filter(r=>r.wbs.includes(wf));
   if(pf)rows=rows.filter(r=>r.pot===pf);
@@ -480,14 +553,14 @@ function renderWBS(){
   if(ref)rows=rows.filter(r=>r.recur===ref);
   rows.sort((a,b)=>{let va=a[sCol],vb=b[sCol];if(va<vb)return -sDir;if(va>vb)return sDir;return 0;});
   document.getElementById('rc2').textContent=rows.length.toLocaleString()+' rows';
-  const body=document.getElementById('wb');
+  const body=document.getElementById('wbt');
   if(!rows.length){body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text2)">No rows match current filters</td></tr>';return;}
   body.innerHTML=rows.map(r=>`<tr>
-    <td class="mono">${r.wbs}</td><td>${r.desc||'—'}</td><td>${r.pot}</td>
-    <td class="num">${cr(r.budget)}</td><td class="num">${cr(r.actual)}</td><td class="num">${pct(r.actpct)}</td>
-    <td class="num">${cr(r.commit)}</td><td class="num">${pct(r.deploy)}</td>
+    <td class="mn">${r.wbs}</td><td>${r.desc||'—'}</td><td>${r.pot}</td>
+    <td class="nr">${cr(r.budget)}</td><td class="nr">${cr(r.actual)}</td><td class="nr">${pct(r.actpct)}</td>
+    <td class="nr">${cr(r.commit)}</td><td class="nr">${pct(r.deploy)}</td>
     <td class="${r.balance<0?'neg':'pos'}">${cr(r.balance)}</td>
-    <td>${r.recur!=='-'?`<span class="badge ${r.recur.toLowerCase()}">${r.recur}</span>`:'<span style="color:var(--text3)">—</span>'}</td>
+    <td>${r.recur!=='-'?`<span class="b ${r.recur.toLowerCase()}">${r.recur}</span>`:'<span style="color:var(--text3)">—</span>'}</td>
     <td><span class="rag ${r.rag}">${r.rag}</span></td>
   </tr>`).join('');
 }
