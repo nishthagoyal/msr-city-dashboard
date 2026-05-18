@@ -385,13 +385,24 @@ function parseCost(wb){
     const potRaw=String(row[30]||'');
     const pot=derivePOT(wbsRaw,coName,potRaw);
     const wbsKey=wbsRaw.replace(/[-\.]/g,'').toUpperCase();
-    // Posting date
+    // Posting date — handles Date object, DD-MM-YYYY, DD.MM.YYYY, YYYY-MM-DD, Excel serial
     let month=null;
     const rd=row[1];
-    if(rd instanceof Date&&!isNaN(rd)){month=rd.getFullYear()+'-'+String(rd.getMonth()+1).padStart(2,'0');}
-    else if(typeof rd==='string'&&rd.length>=7){
-      if(/^\d{2}\.\d{2}\.\d{4}$/.test(rd))month=rd.slice(6,10)+'-'+rd.slice(3,5);
-      else if(/^\d{4}-\d{2}/.test(rd))month=rd.slice(0,7);
+    if(rd instanceof Date&&!isNaN(rd)){
+      month=rd.getFullYear()+'-'+String(rd.getMonth()+1).padStart(2,'0');
+    } else if(typeof rd==='string'&&rd.trim().length>=7){
+      const ds=rd.trim();
+      if(/^\d{2}[-.]\d{2}[-.]\d{4}$/.test(ds)){
+        month=ds.slice(6,10)+'-'+ds.slice(3,5);
+      } else if(/^\d{4}-\d{2}/.test(ds)){
+        month=ds.slice(0,7);
+      } else if(/^\d{5,}$/.test(ds)){
+        const d=new Date(Math.round((parseInt(ds)-25569)*86400*1000));
+        if(!isNaN(d))month=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      }
+    } else if(typeof rd==='number'){
+      const d=new Date(Math.round((rd-25569)*86400*1000));
+      if(!isNaN(d))month=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
     }
     // Accumulate
     costActualMap[wbsKey]=(costActualMap[wbsKey]||0)+signed/1e7;
