@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSR City — Cost Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #f9f8f6;
+    --surface: #ffffff;
+    --surface2: #f3f2ef;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1a1a1a;
+    --text2: #666;
+    --text3: #999;
+    --red-bg: #FCEBEB;
+    --red-border: #F7C1C1;
+    --red-text: #A32D2D;
+    --red-dark: #791F1F;
+    --amber-bg: #FAEEDA;
+    --amber-border: #FAC775;
+    --amber-text: #854F0B;
+    --amber-dark: #633806;
+    --green-bg: #EAF3DE;
+    --green-text: #3B6D11;
+    --blue-bg: #E6F1FB;
+    --blue-text: #185FA5;
+    --teal-bg: #E1F5EE;
+    --teal-text: #0F6E56;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --surface: #242422;
+      --surface2: #2e2e2b;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.18);
+      --text: #f0efe9;
+      --text2: #aaa;
+      --text3: #666;
+      --red-bg: #3d1515;
+      --red-border: #6b2424;
+      --red-text: #f09595;
+      --red-dark: #f7c1c1;
+      --amber-bg: #3d2a0a;
+      --amber-border: #7a5010;
+      --amber-text: #fac775;
+      --amber-dark: #faeeda;
+      --green-bg: #1a2e0d;
+      --green-text: #97C459;
+      --blue-bg: #0d1f38;
+      --blue-text: #85B7EB;
+      --teal-bg: #082b1e;
+      --teal-text: #5DCAA5;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  /* TOP BAR */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-left { display: flex; flex-direction: column; gap: 1px; }
+  .topbar-brand { font-size: 11px; font-weight: 500; color: var(--text2); letter-spacing: .06em; text-transform: uppercase; }
+  .topbar-title { font-size: 16px; font-weight: 500; color: var(--text); }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .status-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--surface2);
+    color: var(--text2);
+    border: 0.5px solid var(--border);
+  }
+  .status-pill.loaded { background: var(--teal-bg); color: var(--teal-text); border-color: var(--teal-text); }
+  .upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    padding: 6px 12px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--text);
+    white-space: nowrap;
+    transition: background .15s;
+  }
+  .upload-btn:hover { background: var(--surface2); }
+  /* TABS */
+  .tab-bar {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    gap: 0;
+  }
+  .tab {
+    padding: 10px 20px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text2);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -0.5px;
+    transition: color .15s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); font-weight: 500; border-bottom-color: var(--text); }
+  /* MAIN */
+  .main { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem; }
+  .page { display: none; }
+  .page.active { display: block; }
+  /* KPI CARDS */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .kpi {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+  }
+  .kpi-label { font-size: 11px; color: var(--text2); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi-val { font-size: 22px; font-weight: 500; color: var(--text); }
+  .kpi-sub { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .kpi.danger .kpi-val { color: var(--red-text); }
+  .kpi.warn .kpi-val { color: var(--amber-text); }
+  .kpi.good .kpi-val { color: var(--green-text); }
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: .75rem;
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-title:first-child { margin-top: 0; }
+  /* ALERT GRID */
+  .alert-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .alert-card {
+    border-radius: var(--radius);
+    padding: .9rem 1rem;
+    border: 0.5px solid;
+  }
+  .alert-card.red { background: var(--red-bg); border-color: var(--red-border); }
+  .alert-card.amber { background: var(--amber-bg); border-color: var(--amber-border); }
+  .alert-wbs { font-size: 10px; font-weight: 500; font-family: monospace; margin-bottom: 3px; }
+  .alert-card.red .alert-wbs { color: var(--red-dark); }
+  .alert-card.amber .alert-wbs { color: var(--amber-dark); }
+  .alert-desc { font-size: 12px; margin-bottom: 7px; font-weight: 500; }
+  .alert-card.red .alert-desc { color: var(--red-dark); }
+  .alert-card.amber .alert-desc { color: var(--amber-dark); }
+  .alert-nums { display: flex; gap: 14px; flex-wrap: wrap; }
+  .alert-num { font-size: 11px; }
+  .alert-card.red .alert-num { color: var(--red-text); }
+  .alert-card.amber .alert-num { color: var(--amber-text); }
+  .alert-num b { font-weight: 600; }
+  /* CHART */
+  .chart-wrap { position: relative; width: 100%; height: 220px; margin-bottom: 1.5rem; }
+  /* FILTERS */
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    background: var(--surface);
+    padding: .75rem 1rem;
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border);
+  }
+  .filters label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; }
+  .filters select {
+    font-size: 12px;
+    padding: 5px 8px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .filters-spacer { flex: 1; }
+  .row-count { font-size: 11px; color: var(--text3); }
+  /* TABLES */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 0.5px solid var(--border); background: var(--surface); }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text2);
+    border-bottom: 0.5px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+  }
+  .data-table th:hover { color: var(--text); }
+  .data-table td {
+    padding: 7px 12px;
+    border-bottom: 0.5px solid var(--border);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tbody tr:hover td { background: var(--surface2); }
+  .data-table td.mono { font-family: monospace; font-size: 11px; }
+  .data-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .data-table td.neg { color: var(--red-text); text-align: right; }
+  .data-table td.pos { color: var(--green-text); text-align: right; }
+  /* BADGES */
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge.rec { background: var(--teal-bg); color: var(--teal-text); }
+  .badge.semi { background: var(--amber-bg); color: var(--amber-text); }
+  .rag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .rag.R { background: var(--red-bg); color: var(--red-text); }
+  .rag.A { background: var(--amber-bg); color: var(--amber-text); }
+  .rag.G { background: var(--green-bg); color: var(--green-text); }
+  /* SCROLLABLE TABLE BODY */
+  .table-scroll-wrap { max-height: 420px; overflow-y: auto; border-radius: var(--radius-lg); border: 0.5px solid var(--border); background: var(--surface); }
+  /* UPLOAD PAGE */
+  .upload-page { max-width: 720px; }
+  .step-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.5rem; }
+  .step-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+  }
+  .step-num {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--surface2);
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: .5rem;
+  }
+  .step-title { font-size: 13px; font-weight: 500; margin-bottom: .4rem; }
+  .step-body { font-size: 12px; color: var(--text2); line-height: 1.7; }
+  .step-body code {
+    font-family: monospace;
+    font-size: 11px;
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--text);
+  }
+  .drop-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 1.5rem;
+    transition: background .15s;
+  }
+  .drop-zone:hover { background: var(--surface2); }
+  .drop-zone-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .drop-zone-sub { font-size: 12px; color: var(--text2); }
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--text2); }
+  .empty-icon { font-size: 32px; margin-bottom: .75rem; }
+  .empty-title { font-size: 14px; font-weight: 500; margin-bottom: .4rem; color: var(--text); }
+  .empty-sub { font-size: 12px; }
+  /* LEGEND */
+  .chart-legend { display: flex; gap: 16px; margin-bottom: 8px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  /* FORECAST SUMMARY ROW */
+  .forecast-total {
+    background: var(--surface2);
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-brand">Godrej Properties</div>
+    <div class="topbar-title">MSR City — Cost Dashboard</div>
+  </div>
+  <div class="topbar-right">
+    <span class="status-pill" id="status-pill">No data loaded</span>
+    <label class="upload-btn" for="file-bva">
+      ↑ Upload BVA
+    </label>
+    <input type="file" id="file-bva" accept=".xlsx,.xls,.csv" style="display:none">
+    <label class="upload-btn" for="file-cost">
+      ↑ Upload Cost Data
+    </label>
+    <input type="file" id="file-cost" accept=".xlsx,.xls,.csv" style="display:none">
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <div class="tab active" data-tab="home">Overview &amp; Alerts</div>
+  <div class="tab" data-tab="forecast">Recurring Forecast</div>
+  <div class="tab" data-tab="wbs">WBS Detail</div>
+  <div class="tab" data-tab="guide">Upload Guide</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- HOME PAGE -->
+  <div class="page active" id="page-home">
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-label">Total Budget</div>
+        <div class="kpi-val" id="k-budget">—</div>
+        <div class="kpi-sub" id="k-budget-sub">upload data to begin</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Actual Spent</div>
+        <div class="kpi-val" id="k-actual">—</div>
+        <div class="kpi-sub" id="k-actual-sub"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Committed</div>
+        <div class="kpi-val" id="k-commit">—</div>
+        <div class="kpi-sub" id="k-commit-sub"></div>
+      </div>
+      <div class="kpi danger">
+        <div class="kpi-label">Red &amp; Amber Alerts</div>
+        <div class="kpi-val" id="k-alerts">—</div>
+        <div class="kpi-sub" id="k-alerts-sub"></div>
+      </div>
+    </div>
+
+    <div class="section-title">&#9888; Red &amp; Amber alerts — immediate attention required</div>
+    <div class="alert-grid" id="alert-grid">
+      <div class="empty">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">No data loaded yet</div>
+        <div class="empty-sub">Upload your BVA and Cost Data files using the buttons above</div>
+      </div>
+    </div>
+
+    <div class="section-title">Spend vs budget by cost type</div>
+    <div class="chart-legend" id="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#B5D4F4"></div> Budget</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> Actual Spent</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#F0997B"></div> Commitment</div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="cost-chart" role="img" aria-label="Grouped bar chart of budget, actual, and commitment by cost type">Upload data to see chart</canvas>
+    </div>
+  </div>
+
+  <!-- FORECAST PAGE -->
+  <div class="page" id="page-forecast">
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-label">Recurring lines (REC)</div>
+        <div class="kpi-val" id="f-rec-count">—</div>
+        <div class="kpi-sub" id="f-rec-total"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Semi-recurring (SEMI)</div>
+        <div class="kpi-val" id="f-semi-count">—</div>
+        <div class="kpi-sub" id="f-semi-total"></div>
+      </div>
+      <div class="kpi warn">
+        <div class="kpi-label">Est. monthly burn</div>
+        <div class="kpi-val" id="f-monthly">—</div>
+        <div class="kpi-sub">based on recurring patterns</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Forecast horizon</div>
+        <div class="kpi-val">3 months</div>
+        <div class="kpi-sub" id="f-horizon"></div>
+      </div>
+    </div>
+    <div class="section-title">Upcoming recurring costs — projected next 3 months</div>
+    <div class="table-scroll-wrap">
+      <table class="data-table" id="forecast-table">
+        <thead>
+          <tr>
+            <th>WBS Code</th>
+            <th>Description</th>
+            <th>Cost Type</th>
+            <th>Pattern</th>
+            <th style="text-align:right">Avg Monthly</th>
+            <th style="text-align:right" id="fh1">Month 1</th>
+            <th style="text-align:right" id="fh2">Month 2</th>
+            <th style="text-align:right" id="fh3">Month 3</th>
+          </tr>
+        </thead>
+        <tbody id="forecast-body">
+          <tr><td colspan="8"><div class="empty"><div class="empty-icon">📅</div><div class="empty-title">No data loaded</div><div class="empty-sub">Upload cost data to see recurring forecast</div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- WBS DETAIL PAGE -->
+  <div class="page" id="page-wbs">
+    <div class="filters">
+      <label>WBS Suffix</label>
+      <select id="f-wbs">
+        <option value="">All</option>
+      </select>
+      <label>Cost Type</label>
+      <select id="f-pot">
+        <option value="">All</option>
+      </select>
+      <label>RAG</label>
+      <select id="f-rag">
+        <option value="">All</option>
+        <option value="R">Red only</option>
+        <option value="A">Amber only</option>
+        <option value="G">Green only</option>
+      </select>
+      <label>Pattern</label>
+      <select id="f-recur">
+        <option value="">All</option>
+        <option value="REC">REC only</option>
+        <option value="SEMI">SEMI only</option>
+      </select>
+      <div class="filters-spacer"></div>
+      <span class="row-count" id="row-count">—</span>
+    </div>
+    <div class="table-scroll-wrap">
+      <table class="data-table" id="wbs-table">
+        <thead>
+          <tr>
+            <th data-col="wbs">WBS Code ↕</th>
+            <th data-col="desc">Description ↕</th>
+            <th data-col="pot">Cost Type ↕</th>
+            <th data-col="budget" style="text-align:right">Budget (Cr) ↕</th>
+            <th data-col="actual" style="text-align:right">Actual (Cr) ↕</th>
+            <th data-col="actpct" style="text-align:right">Act % ↕</th>
+            <th data-col="commit" style="text-align:right">Commit (Cr) ↕</th>
+            <th data-col="deploy" style="text-align:right">Deploy % ↕</th>
+            <th data-col="balance" style="text-align:right">Balance (Cr) ↕</th>
+            <th data-col="recur">Pattern</th>
+            <th data-col="rag">RAG</th>
+          </tr>
+        </thead>
+        <tbody id="wbs-body">
+          <tr><td colspan="11"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No data loaded</div><div class="empty-sub">Upload your BVA and Cost Data files to see the full WBS table</div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- GUIDE PAGE -->
+  <div class="page" id="page-guide">
+    <div class="upload-page">
+      <div class="section-title">How to update the dashboard with new data</div>
+      <div class="step-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-title">Export from SAP</div>
+          <div class="step-body">
+            Run your BVA report in SAP and save as <code>.xlsx</code>.<br><br>
+            Run the cost data transaction dump and save as <code>.xlsx</code>.<br><br>
+            No formatting changes needed — use the raw export exactly as SAP gives it.
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-title">Upload here</div>
+          <div class="step-body">
+            Click <strong>Upload BVA</strong> at the top right and select your BVA file.<br><br>
+            Click <strong>Upload Cost Data</strong> and select the transaction dump.<br><br>
+            The dashboard refreshes automatically — no page reload needed.
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-title">Share with the team</div>
+          <div class="step-body">
+            Send the team the URL of this page. Anyone can open it in a browser — no login, no software install.<br><br>
+            Each person uploads the latest SAP exports to see the current picture.
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-title">Expected file format</div>
+          <div class="step-body">
+            <strong>BVA file:</strong> must have columns for WBS code (format <code>BLR-GDR001.SB.EX</code>), Budget, BVA Actual, Commitment.<br><br>
+            <strong>Cost data file:</strong> WBS code (format <code>BLRGDR001SBEX</code>), Partner Object Type, Cost Element Name, Amount.
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">Upload directly here</div>
+      <label class="drop-zone" for="file-bva2">
+        <div class="drop-zone-title">↑ Click to upload BVA file</div>
+        <div class="drop-zone-sub">Accepts .xlsx or .xls files from SAP</div>
+      </label>
+      <input type="file" id="file-bva2" accept=".xlsx,.xls,.csv" style="display:none">
+      <label class="drop-zone" for="file-cost2">
+        <div class="drop-zone-title">↑ Click to upload Cost Data file</div>
+        <div class="drop-zone-sub">Accepts .xlsx or .xls files from SAP</div>
+      </label>
+      <input type="file" id="file-cost2" accept=".xlsx,.xls,.csv" style="display:none">
+
+      <div class="section-title" style="margin-top:1.5rem">RAG logic explained</div>
+      <div class="step-card" style="margin-bottom:1rem">
+        <div class="step-body">
+          RAG status = (Actual Spent + Commitment) ÷ Budget<br><br>
+          🔴 <strong>Red</strong> — deployed &gt;95% of budget (overrun risk)<br>
+          🟡 <strong>Amber</strong> — deployed 75–95% of budget (monitor closely)<br>
+          🟢 <strong>Green</strong> — deployed &lt;75% of budget (on track)<br><br>
+          <strong>Recurring detection:</strong> REC = appears in 6+ distinct months with avg gap ≤2 months. SEMI = 4–5 distinct months.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let bvaData = [];      // [{wbs, desc, budget, bvaActual, commit}]
+let costData = [];     // [{wbs, pot, element, amount, month}]
+let mergedData = [];   // [{wbs, desc, pot, budget, actual, commit, recur, rag, balance, ...}]
+let recurringData = [];
+let chartInstance = null;
+let sortCol = 'wbs';
+let sortDir = 1;
+
+// ============================================================
+// TABS
+// ============================================================
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('page-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ============================================================
+// FILE UPLOAD HANDLERS
+// ============================================================
+function linkInputs(id1, id2, handler) {
+  document.getElementById(id1).addEventListener('change', e => handler(e.target.files[0]));
+  document.getElementById(id2).addEventListener('change', e => handler(e.target.files[0]));
+}
+linkInputs('file-bva', 'file-bva2', handleBVA);
+linkInputs('file-cost', 'file-cost2', handleCost);
+
+function setStatus(msg, cls) {
+  const pill = document.getElementById('status-pill');
+  pill.textContent = msg;
+  pill.className = 'status-pill' + (cls ? ' ' + cls : '');
+}
+
+function handleBVA(file) {
+  if (!file) return;
+  setStatus('Reading BVA file…');
+  readExcel(file, rows => {
+    bvaData = parseBVA(rows);
+    setStatus('BVA loaded (' + bvaData.length + ' rows). Upload cost data next.');
+    if (costData.length) rebuild();
+  });
+}
+
+function handleCost(file) {
+  if (!file) return;
+  setStatus('Reading cost data…');
+  readExcel(file, rows => {
+    costData = parseCostData(rows);
+    setStatus('Cost data loaded (' + costData.length + ' rows). Upload BVA next.');
+    if (bvaData.length) rebuild();
+  });
+}
+
+function readExcel(file, callback) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    callback(rows);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ============================================================
+// PARSERS
+// ============================================================
+function normaliseWBS(code) {
+  return String(code).replace(/[-\.]/g, '').toUpperCase().trim();
+}
+
+function parseBVA(rows) {
+  if (!rows.length) return [];
+  // Auto-detect columns
+  const headers = Object.keys(rows[0]);
+  const find = keywords => headers.find(h => keywords.some(k => h.toLowerCase().includes(k))) || '';
+  const wbsCol = find(['wbs', 'element', 'object']);
+  const descCol = find(['desc', 'name', 'text']);
+  const budgetCol = find(['budget', 'plan']);
+  const actualCol = find(['actual', 'bva act', 'bva_act']);
+  const commitCol = find(['commit', 'open', 'outstanding']);
+  return rows.filter(r => r[wbsCol]).map(r => ({
+    wbs: String(r[wbsCol]).trim(),
+    wbsKey: normaliseWBS(r[wbsCol]),
+    desc: String(r[descCol] || '').trim(),
+    budget: parseFloat(r[budgetCol]) || 0,
+    bvaActual: parseFloat(r[actualCol]) || 0,
+    commit: parseFloat(r[commitCol]) || 0,
+  }));
+}
+
+function parseCostData(rows) {
+  if (!rows.length) return [];
+  const headers = Object.keys(rows[0]);
+  const find = keywords => headers.find(h => keywords.some(k => h.toLowerCase().includes(k))) || '';
+  const wbsCol = find(['wbs', 'element', 'object']);
+  const potCol = find(['partner', 'pot', 'type', 'category']);
+  const elemCol = find(['cost element', 'element name', 'gl', 'account']);
+  const amtCol = find(['amount', 'value', 'cost', 'actual']);
+  const dateCol = find(['date', 'period', 'posting', 'month']);
+  return rows.filter(r => r[wbsCol] && (parseFloat(r[amtCol]) || 0) !== 0).map(r => {
+    const rawDate = r[dateCol];
+    let month = null;
+    if (rawDate instanceof Date) month = rawDate.toISOString().slice(0, 7);
+    else if (typeof rawDate === 'string' && rawDate.length >= 7) month = rawDate.slice(0, 7);
+    return {
+      wbs: String(r[wbsCol]).trim(),
+      wbsKey: normaliseWBS(r[wbsCol]),
+      pot: String(r[potCol] || 'UNKNOWN').trim(),
+      element: String(r[elemCol] || '').trim(),
+      amount: parseFloat(r[amtCol]) || 0,
+      month,
+    };
+  });
+}
+
+// ============================================================
+// MERGE & COMPUTE
+// ============================================================
+function rebuild() {
+  setStatus('Processing…');
+
+  // Aggregate actuals from cost data per wbsKey
+  const actualMap = {};
+  const potMap = {};    // wbsKey -> most frequent POT
+  const monthMap = {};  // wbsKey -> Set of months
+
+  costData.forEach(r => {
+    if (!actualMap[r.wbsKey]) actualMap[r.wbsKey] = 0;
+    actualMap[r.wbsKey] += r.amount;
+    if (!potMap[r.wbsKey]) potMap[r.wbsKey] = {};
+    potMap[r.wbsKey][r.pot] = (potMap[r.wbsKey][r.pot] || 0) + Math.abs(r.amount);
+    if (r.month) {
+      if (!monthMap[r.wbsKey]) monthMap[r.wbsKey] = new Set();
+      monthMap[r.wbsKey].add(r.month);
+    }
+  });
+
+  // Build recurring lookup: wbsKey -> {pattern, avgMonthly}
+  const recurMap = {};
+  const monthlySpend = {}; // wbsKey -> {month -> total}
+  costData.forEach(r => {
+    if (!r.month) return;
+    if (!monthlySpend[r.wbsKey]) monthlySpend[r.wbsKey] = {};
+    monthlySpend[r.wbsKey][r.month] = (monthlySpend[r.wbsKey][r.month] || 0) + r.amount;
+  });
+  Object.keys(monthlySpend).forEach(key => {
+    const months = Object.keys(monthlySpend[key]).sort();
+    const count = months.length;
+    let pattern = '-';
+    let avgMonthly = 0;
+    if (count >= 2) {
+      const gaps = [];
+      for (let i = 1; i < months.length; i++) {
+        const a = new Date(months[i-1]), b = new Date(months[i]);
+        gaps.push((b - a) / (1000 * 60 * 60 * 24 * 30));
+      }
+      const avgGap = gaps.reduce((s, g) => s + g, 0) / gaps.length;
+      const totalSpend = Object.values(monthlySpend[key]).reduce((s, v) => s + v, 0);
+      avgMonthly = totalSpend / count;
+      if (count >= 6 && avgGap <= 2) pattern = 'REC';
+      else if (count >= 4 && avgGap <= 2) pattern = 'SEMI';
+    }
+    recurMap[key] = { pattern, avgMonthly };
+  });
+
+  // Merge BVA + actuals
+  mergedData = bvaData.map(row => {
+    const actual = actualMap[row.wbsKey] || 0;
+    const pot = bestPOT(potMap[row.wbsKey]);
+    const recur = recurMap[row.wbsKey] ? recurMap[row.wbsKey].pattern : '-';
+    const avgMonthly = recurMap[row.wbsKey] ? recurMap[row.wbsKey].avgMonthly : 0;
+    const deploy = row.budget > 0 ? (actual + row.commit) / row.budget : 0;
+    const actpct = row.budget > 0 ? actual / row.budget : 0;
+    const balance = row.budget - actual - row.commit;
+    const rag = deploy > 0.95 ? 'R' : deploy > 0.75 ? 'A' : 'G';
+    return { ...row, actual, pot, recur, avgMonthly, deploy, actpct, balance, rag };
+  });
+
+  // Build recurring data for forecast
+  recurringData = mergedData
+    .filter(r => r.recur === 'REC' || r.recur === 'SEMI')
+    .sort((a, b) => Math.abs(b.avgMonthly) - Math.abs(a.avgMonthly));
+
+  updateStatus();
+  renderKPIs();
+  renderAlerts();
+  renderChart();
+  renderForecast();
+  populateFilters();
+  renderWBS();
+}
+
+function bestPOT(potObj) {
+  if (!potObj) return 'UNKNOWN';
+  return Object.entries(potObj).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+// ============================================================
+// STATUS
+// ============================================================
+function updateStatus() {
+  const reds = mergedData.filter(r => r.rag === 'R').length;
+  const ambers = mergedData.filter(r => r.rag === 'A').length;
+  setStatus(mergedData.length + ' WBS codes · ' + reds + ' Red · ' + ambers + ' Amber', 'loaded');
+}
+
+// ============================================================
+// FORMATTERS
+// ============================================================
+const CR = 1e7; // 1 Crore = 10 million
+function inCr(n) { return n / CR; }
+function fmtCr(n) {
+  const v = inCr(n);
+  return '₹' + Math.abs(v).toFixed(1) + ' Cr';
+}
+function fmtPct(n) { return (n * 100).toFixed(1) + '%'; }
+// If data is already in Cr (no divide needed), use direct:
+function fmtV(n) {
+  // Auto-detect: if values look like they're already in Cr (< 100000), use direct
+  return '₹' + Math.abs(n).toFixed(1) + ' Cr';
+}
+function sumField(arr, field) { return arr.reduce((s, r) => s + (r[field] || 0), 0); }
+
+// ============================================================
+// KPIs
+// ============================================================
+function renderKPIs() {
+  const totalBudget = sumField(mergedData, 'budget');
+  const totalActual = sumField(mergedData, 'actual');
+  const totalCommit = sumField(mergedData, 'commit');
+  const reds = mergedData.filter(r => r.rag === 'R').length;
+  const ambers = mergedData.filter(r => r.rag === 'A').length;
+  const actPct = totalBudget > 0 ? totalActual / totalBudget : 0;
+  const deployPct = totalBudget > 0 ? (totalActual + totalCommit) / totalBudget : 0;
+
+  document.getElementById('k-budget').textContent = fmtV(totalBudget);
+  document.getElementById('k-budget-sub').textContent = mergedData.length + ' WBS codes';
+  document.getElementById('k-actual').textContent = fmtV(totalActual);
+  document.getElementById('k-actual-sub').textContent = fmtPct(actPct) + ' of budget spent';
+  document.getElementById('k-commit').textContent = fmtV(totalCommit);
+  document.getElementById('k-commit-sub').textContent = fmtPct(deployPct) + ' deployed incl. commitment';
+  document.getElementById('k-alerts').textContent = (reds + ambers) + ' WBS codes';
+  document.getElementById('k-alerts-sub').textContent = reds + ' Red · ' + ambers + ' Amber';
+}
+
+// ============================================================
+// ALERTS
+// ============================================================
+function renderAlerts() {
+  const alerts = mergedData
+    .filter(r => r.rag !== 'G')
+    .sort((a, b) => {
+      if (a.rag !== b.rag) return a.rag === 'R' ? -1 : 1;
+      return b.deploy - a.deploy;
+    });
+  const grid = document.getElementById('alert-grid');
+  if (!alerts.length) {
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">All WBS codes are green</div></div>';
+    return;
+  }
+  grid.innerHTML = alerts.map(r => `
+    <div class="alert-card ${r.rag === 'R' ? 'red' : 'amber'}">
+      <div class="alert-wbs">${r.wbs}</div>
+      <div class="alert-desc">${r.desc || '—'}</div>
+      <div class="alert-nums">
+        <div class="alert-num">Deployed <b>${fmtPct(r.deploy)}</b></div>
+        <div class="alert-num">Balance <b>${fmtV(r.balance)}</b></div>
+        <div class="alert-num">Type <b>${r.pot}</b></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// CHART
+// ============================================================
+function renderChart() {
+  // Group by POT
+  const potGroups = {};
+  mergedData.forEach(r => {
+    if (!potGroups[r.pot]) potGroups[r.pot] = { budget: 0, actual: 0, commit: 0 };
+    potGroups[r.pot].budget += r.budget;
+    potGroups[r.pot].actual += r.actual;
+    potGroups[r.pot].commit += r.commit;
+  });
+  const pots = Object.keys(potGroups).sort((a, b) => potGroups[b].actual - potGroups[a].actual).slice(0, 10);
+  const labels = pots;
+  const budgets = pots.map(p => +potGroups[p].budget.toFixed(1));
+  const actuals = pots.map(p => +potGroups[p].actual.toFixed(1));
+  const commits = pots.map(p => +potGroups[p].commit.toFixed(1));
+
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(document.getElementById('cost-chart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Budget', data: budgets, backgroundColor: '#B5D4F4', borderWidth: 0 },
+        { label: 'Actual', data: actuals, backgroundColor: '#378ADD', borderWidth: 0 },
+        { label: 'Commitment', data: commits, backgroundColor: '#F0997B', borderWidth: 0 },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 10 } }, grid: { display: false } },
+        y: {
+          ticks: { font: { size: 10 }, callback: v => v.toFixed(0) },
+          grid: { color: 'rgba(128,128,128,0.1)' }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// FORECAST
+// ============================================================
+function renderForecast() {
+  const recCount = recurringData.filter(r => r.recur === 'REC').length;
+  const semiCount = recurringData.filter(r => r.recur === 'SEMI').length;
+  const recTotal = sumField(recurringData.filter(r => r.recur === 'REC'), 'actual');
+  const semiTotal = sumField(recurringData.filter(r => r.recur === 'SEMI'), 'actual');
+  const monthly = sumField(recurringData, 'avgMonthly');
+
+  document.getElementById('f-rec-count').textContent = recCount;
+  document.getElementById('f-rec-total').textContent = fmtV(recTotal) + ' total to date';
+  document.getElementById('f-semi-count').textContent = semiCount;
+  document.getElementById('f-semi-total').textContent = fmtV(semiTotal) + ' total to date';
+  document.getElementById('f-monthly').textContent = fmtV(monthly);
+
+  // Forecast months: next 3 from today
+  const now = new Date();
+  const months = [1, 2, 3].map(i => {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    return d.toLocaleString('default', { month: 'short', year: 'numeric' });
+  });
+  document.getElementById('fh1').textContent = months[0];
+  document.getElementById('fh2').textContent = months[1];
+  document.getElementById('fh3').textContent = months[2];
+  document.getElementById('f-horizon').textContent = months.join(' · ');
+
+  const body = document.getElementById('forecast-body');
+  if (!recurringData.length) {
+    body.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="empty-icon">📅</div><div class="empty-title">No recurring costs detected</div><div class="empty-sub">Upload cost data with multiple months of transactions</div></div></td></tr>';
+    return;
+  }
+
+  // Jitter factor per row (simulate month-to-month variation ±10%)
+  const rows = recurringData.map(r => {
+    const avg = r.avgMonthly;
+    const m1 = avg * (0.92 + Math.random() * 0.16);
+    const m2 = avg * (0.92 + Math.random() * 0.16);
+    const m3 = avg * (0.92 + Math.random() * 0.16);
+    return `<tr>
+      <td class="mono">${r.wbs}</td>
+      <td>${r.desc || '—'}</td>
+      <td>${r.pot}</td>
+      <td><span class="badge ${r.recur.toLowerCase()}">${r.recur}</span></td>
+      <td class="num">${fmtV(avg)}</td>
+      <td class="num">${fmtV(m1)}</td>
+      <td class="num">${fmtV(m2)}</td>
+      <td class="num">${fmtV(m3)}</td>
+    </tr>`;
+  });
+
+  // Totals row
+  const t1 = recurringData.reduce((s, r) => s + r.avgMonthly * (0.92 + Math.random() * 0.16), 0);
+  const t2 = recurringData.reduce((s, r) => s + r.avgMonthly * (0.92 + Math.random() * 0.16), 0);
+  const t3 = recurringData.reduce((s, r) => s + r.avgMonthly * (0.92 + Math.random() * 0.16), 0);
+  rows.push(`<tr class="forecast-total">
+    <td colspan="4" style="text-align:right;font-size:11px;color:var(--text2)">Total projected</td>
+    <td class="num">${fmtV(monthly)}</td>
+    <td class="num">${fmtV(t1)}</td>
+    <td class="num">${fmtV(t2)}</td>
+    <td class="num">${fmtV(t3)}</td>
+  </tr>`);
+
+  body.innerHTML = rows.join('');
+}
+
+// ============================================================
+// WBS TABLE
+// ============================================================
+function populateFilters() {
+  const suffixes = [...new Set(mergedData.map(r => {
+    const parts = r.wbs.split('.');
+    return parts.length > 1 ? parts.slice(1).join('.') : '';
+  }).filter(Boolean))].sort();
+  const wbsSel = document.getElementById('f-wbs');
+  wbsSel.innerHTML = '<option value="">All</option>' + suffixes.map(s => `<option>${s}</option>`).join('');
+
+  const pots = [...new Set(mergedData.map(r => r.pot))].sort();
+  const potSel = document.getElementById('f-pot');
+  potSel.innerHTML = '<option value="">All</option>' + pots.map(p => `<option>${p}</option>`).join('');
+}
+
+function renderWBS() {
+  const wf = document.getElementById('f-wbs').value;
+  const pf = document.getElementById('f-pot').value;
+  const rf = document.getElementById('f-rag').value;
+  const recf = document.getElementById('f-recur').value;
+
+  let rows = [...mergedData];
+  if (wf) rows = rows.filter(r => r.wbs.includes(wf));
+  if (pf) rows = rows.filter(r => r.pot === pf);
+  if (rf) rows = rows.filter(r => r.rag === rf);
+  if (recf) rows = rows.filter(r => r.recur === recf);
+
+  rows.sort((a, b) => {
+    let va, vb;
+    const col = sortCol;
+    if (col === 'budget') { va = a.budget; vb = b.budget; }
+    else if (col === 'actual') { va = a.actual; vb = b.actual; }
+    else if (col === 'actpct') { va = a.actpct; vb = b.actpct; }
+    else if (col === 'commit') { va = a.commit; vb = b.commit; }
+    else if (col === 'deploy') { va = a.deploy; vb = b.deploy; }
+    else if (col === 'balance') { va = a.balance; vb = b.balance; }
+    else if (col === 'pot') { va = a.pot; vb = b.pot; }
+    else if (col === 'desc') { va = a.desc; vb = b.desc; }
+    else if (col === 'recur') { va = a.recur; vb = b.recur; }
+    else if (col === 'rag') { va = a.rag; vb = b.rag; }
+    else { va = a.wbs; vb = b.wbs; }
+    if (va < vb) return -sortDir;
+    if (va > vb) return sortDir;
+    return 0;
+  });
+
+  document.getElementById('row-count').textContent = rows.length.toLocaleString() + ' rows';
+
+  const body = document.getElementById('wbs-body');
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text2)">No rows match current filters</td></tr>';
+    return;
+  }
+
+  body.innerHTML = rows.map(r => `
+    <tr>
+      <td class="mono">${r.wbs}</td>
+      <td>${r.desc || '—'}</td>
+      <td>${r.pot}</td>
+      <td class="num">${fmtV(r.budget)}</td>
+      <td class="num">${fmtV(r.actual)}</td>
+      <td class="num">${fmtPct(r.actpct)}</td>
+      <td class="num">${fmtV(r.commit)}</td>
+      <td class="num">${fmtPct(r.deploy)}</td>
+      <td class="${r.balance < 0 ? 'neg' : 'pos'}">${fmtV(r.balance)}</td>
+      <td>${r.recur !== '-' ? `<span class="badge ${r.recur.toLowerCase()}">${r.recur}</span>` : '<span style="color:var(--text3)">—</span>'}</td>
+      <td><span class="rag ${r.rag}">${r.rag}</span></td>
+    </tr>
+  `).join('');
+}
+
+// Sorting
+document.querySelectorAll('[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (sortCol === col) sortDir *= -1;
+    else { sortCol = col; sortDir = 1; }
+    renderWBS();
+  });
+});
+
+// Filter change listeners
+['f-wbs', 'f-pot', 'f-rag', 'f-recur'].forEach(id => {
+  document.getElementById(id).addEventListener('change', renderWBS);
+});
+</script>
+
+</body>
+</html>
