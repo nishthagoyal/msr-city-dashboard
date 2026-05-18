@@ -362,7 +362,7 @@ function derivePOT(wbs, coName, potRaw){
 
 function parseCost(wb){
   const ws=wb.Sheets[wb.SheetNames[0]];
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:false,cellDates:true});
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true,cellDates:true});
   // Reset maps
   costActualMap={};costPotMap={};costMonthMap={};
   // Build CO Name -> POT from valid rows first
@@ -377,7 +377,7 @@ function parseCost(wb){
     const row=rows[i];if(!row)continue;
     const wbsRaw=String(row[4]||'').trim();
     if(!wbsRaw||wbsRaw==='null')continue; // skip blank WBS (SAP summary rows)
-    const amt=parseFloat(String(row[8]||'').replace(/,/g,''));
+    const amt=typeof row[8]==='number'?row[8]:parseFloat(String(row[8]||'').replace(/,/g,''));
     if(isNaN(amt)||amt===0)continue;
     const drcr=String(row[25]||'');
     const signed=drcr==='D'?amt:(drcr==='C'?-amt:amt);
