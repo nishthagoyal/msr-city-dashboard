@@ -200,6 +200,7 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
   ⚠ Supabase not configured — dashboard is in demo mode.
   <a onclick="switchNav('upload')">Complete setup in Upload tab →</a>
 </div>
+<button id="back-to-top" onclick="document.querySelector('.content').scrollTo({top:0,behavior:'smooth'})" style="display:none;position:fixed;bottom:24px;right:24px;z-index:999;background:var(--ink);color:var(--paper);border:none;border-radius:20px;padding:7px 14px;font-size:11px;font-family:var(--font-body);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);opacity:.85">↑ Top</button>
 
 <div class="shell">
   <!-- TOP BAR -->
@@ -629,7 +630,29 @@ async function loadData(){
   }catch(e){setSt('Error: '+e.message,'err');console.error(e);}
 }
 
+// Global wbsMap accessible by all render functions
+let wbsMap={};
+
+// Derive POT from WBS code string - always reliable
+function potFromWbs(code){
+  if(!code)return'OTHER';
+  const segs=code.split('.');
+  for(let i=segs.length-1;i>=0;i--){
+    const s=segs[i].replace(/\d+$/,'');
+    if(SEG_POT[s])return SEG_POT[s];
+  }
+  return'OTHER';
+}
+
 function processData(wbsRows,mRows){
+  // Find parent codes (codes that are prefixes of other codes)
+  const allWbsCodes=new Set(wbsRows.map(r=>r.wbs).filter(Boolean));
+  const parentCodes=new Set();
+  allWbsCodes.forEach(code=>{
+    const parts=code.split('.');
+    for(let i=1;i<parts.length;i++) parentCodes.add(parts.slice(0,i).join('.'));
+  });
+
   const monthMap={};
   mRows.forEach(r=>{
     if(!monthMap[r.wbs_key])monthMap[r.wbs_key]={};
@@ -664,13 +687,16 @@ function processData(wbsRows,mRows){
     const actpct=budget>0?actual/budget:0;
     const balance=budget-actual-commit;
     let rag=deploy>1.0?'OVER':deploy>0.95?'R':deploy>0.75?'A':'G';
-    // Derive POT from WBS code if not stored or is OTHER
-    let pot=row.pot&&row.pot!=='OTHER'?row.pot:null;
-    if(!pot&&row.wbs){const m=(row.wbs||'').match(/\.([A-Z]{2})\d*$/);if(m&&SEG_POT[m[1]])pot=SEG_POT[m[1]];}
-    if(!pot)pot='OTHER';
-    return{wbs:row.wbs,wbsKey:row.wbs_key,desc:row.description,pot,
+    const pot=potFromWbs(row.wbs);
+    const isLeaf=!parentCodes.has(row.wbs);
+    return{wbs:row.wbs,wbsKey:row.wbs_key,desc:row.description,pot,isLeaf,
       budget,actual,commit,deploy,actpct,balance,rag,recur:rec.pattern,avgMonthly:rec.avgMonthly};
   });
+
+  // Build global wbsMap and enrich monthly rows with correct POT
+  wbsMap={};
+  merged.forEach(r=>wbsMap[r.wbsKey]=r);
+  mRows.forEach(r=>{r._pot=(wbsMap[r.wbs_key]?wbsMap[r.wbs_key].pot:potFromWbs(r.wbs_key));});
 
   recurring=merged.filter(r=>r.recur==='REC'||r.recur==='SEMI').sort((a,b)=>Math.abs(b.avgMonthly)-Math.abs(a.avgMonthly));
   allMonths=[...new Set(mRows.map(r=>r.month).filter(Boolean))].sort();
@@ -754,49 +780,40 @@ function renderAlerts(){
 function renderFlow(){
   const selMonth=document.getElementById('flow-month').value;
   const selPOT=document.getElementById('flow-pot').value;
-  // Build wbsMap once for all lookups
-  const wbsMap={};merged.forEach(r=>wbsMap[r.wbsKey]=r);
-  // Helper: get POT for a monthly row — prefer wbs_snapshot POT over monthly_spend POT
-  function rowPOT(r){const w=wbsMap[r.wbs_key];return(w&&w.pot&&w.pot!=='OTHER')?w.pot:(r.pot||'OTHER');}
-
-  // Chart: spend by POT (filtered by month only, not POT — so chart shows full picture)
+  // Use _pot enriched in processData (derived from WBS code via SEG_POT map)
   let chartRows=monthlyRows;
   if(selMonth)chartRows=chartRows.filter(r=>r.month===selMonth);
   const byPOT={};
-  chartRows.forEach(r=>{const pot=rowPOT(r);byPOT[pot]=(byPOT[pot]||0)+Number(r.amount);});
+  chartRows.forEach(r=>{const pot=r._pot||'OTHER';byPOT[pot]=(byPOT[pot]||0)+Number(r.amount);});
   const potsSorted=Object.keys(byPOT).filter(p=>byPOT[p]>0).sort((a,b)=>byPOT[b]-byPOT[a]).slice(0,12);
   const COLORS=['#c0392b','#e67e22','#f39c12','#2e86c1','#1abc9c','#8e44ad','#27ae60','#2980b9','#d35400','#16a085','#7f8c8d','#2c3e50'];
   mkChart('chart-pot','bar',{
     labels:potsSorted,
     datasets:[{data:potsSorted.map(p=>+byPOT[p].toFixed(2)),backgroundColor:COLORS,borderWidth:0}]
-  },{scales:{x:{ticks:{font:{size:9}},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>'₹'+v.toFixed(0)+'Cr'},grid:{color:'rgba(0,0,0,0.05)'}}}});
-
-  // Trend chart: filtered by POT if selected
+  },{scales:{x:{ticks:{font:{size:9}},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>'\u20b9'+v.toFixed(0)+'Cr'},grid:{color:'rgba(0,0,0,0.05)'}}}});
   const byMonth={};
   monthlyRows.forEach(r=>{
-    if(selPOT&&rowPOT(r)!==selPOT)return;
+    if(selPOT&&(r._pot||'OTHER')!==selPOT)return;
     byMonth[r.month]=(byMonth[r.month]||0)+Number(r.amount);
   });
   const mSorted=Object.keys(byMonth).sort().slice(-18);
   mkChart('chart-trend','line',{
     labels:mSorted,
     datasets:[{data:mSorted.map(m=>+byMonth[m].toFixed(2)),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,0.08)',tension:.3,pointRadius:3,fill:true,borderWidth:1.5}]
-  },{scales:{x:{ticks:{font:{size:9},maxRotation:45},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>'₹'+v.toFixed(0)+'Cr'},grid:{color:'rgba(0,0,0,0.05)'}}}});
-
-  // Table: filtered by both month and POT
+  },{scales:{x:{ticks:{font:{size:9},maxRotation:45},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>'\u20b9'+v.toFixed(0)+'Cr'},grid:{color:'rgba(0,0,0,0.05)'}}}});
   let flowRows=monthlyRows;
   if(selMonth)flowRows=flowRows.filter(r=>r.month===selMonth);
-  if(selPOT)flowRows=flowRows.filter(r=>rowPOT(r)===selPOT);
+  if(selPOT)flowRows=flowRows.filter(r=>(r._pot||'OTHER')===selPOT);
   flowRows=flowRows.filter(r=>Math.abs(Number(r.amount))>0);
   flowRows.sort((a,b)=>Math.abs(Number(b.amount))-Math.abs(Number(a.amount)));
   document.getElementById('flow-body').innerHTML=flowRows.slice(0,500).map(r=>{
-    const wbs=wbsMap[r.wbs_key];
-    const pot=rowPOT(r);
+    const w=wbsMap[r.wbs_key];
+    const pot=r._pot||'OTHER';
     return`<tr>
       <td class="mono">${r.month}</td>
-      <td><span class="badge ${pot.toLowerCase().substring(0,4)}" style="background:var(--paper2);color:var(--ink2)">${pot}</span></td>
+      <td><span style="font-size:10px;padding:2px 7px;border-radius:3px;background:var(--paper2);color:var(--ink2);font-family:var(--font-mono)">${pot}</span></td>
       <td class="mono">${r.wbs_key}</td>
-      <td>${wbs?wbs.desc:'—'}</td>
+      <td>${w?w.desc:'\u2014'}</td>
       <td class="${Number(r.amount)>=0?'pos':'neg'}">${cr(Number(r.amount))}</td>
     </tr>`;
   }).join('');
@@ -804,31 +821,32 @@ function renderFlow(){
 
 function renderLocked(){
   const selPOT=document.getElementById('low-pot').value;
-  const locked=merged.filter(r=>r.actpct<0.3&&r.commit>0&&r.budget>0.1).sort((a,b)=>b.commit-a.commit);
+  // Leaf-only for locked cards and low util (parent codes are just summaries)
+  const locked=merged.filter(r=>r.isLeaf&&r.actpct<0.3&&r.commit>0&&r.budget>0.1).sort((a,b)=>b.commit-a.commit);
   document.getElementById('k-locked-n').textContent=locked.length;
   document.getElementById('k-locked-v').textContent=cr(sm(locked,'commit'));
   document.getElementById('locked-grid').innerHTML=locked.slice(0,20).map(r=>`<div class="locked-card">
-    <div class="locked-wbs">${r.wbs} · <span style="font-weight:600;color:#1a4a8a">${r.pot}</span></div>
-    <div class="locked-desc">${r.desc||'—'}</div>
+    <div class="locked-wbs">${r.wbs} \u00b7 <span style="font-weight:600;color:#1a4a8a">${r.pot}</span></div>
+    <div class="locked-desc">${r.desc||'\u2014'}</div>
     <div class="locked-stats">
       <div class="locked-stat">Committed <b>${cr(r.commit)}</b></div>
       <div class="locked-stat">Actual spent <b>${pct(r.actpct)}</b></div>
       <div class="locked-stat">Budget <b>${cr(r.budget)}</b></div>
     </div>
-  </div>`).join('') || emptyH('✅','No locked budget detected','');
-  let low=merged.filter(r=>r.actpct*100<lowThreshold&&r.budget>0.05);
+  </div>`).join('') || emptyH('\u2705','No locked budget detected','');
+  let low=merged.filter(r=>r.isLeaf&&r.actpct*100<lowThreshold&&r.budget>0.05);
   if(selPOT)low=low.filter(r=>r.pot===selPOT);
   low.sort((a,b)=>{let va=a[lowSortCol],vb=b[lowSortCol];if(va<vb)return -lowSortDir;if(va>vb)return lowSortDir;return 0;});
   document.getElementById('k-low-n').textContent=low.length;
   document.getElementById('low-count').textContent=low.length+' rows';
   document.getElementById('low-body').innerHTML=low.map(r=>`<tr class="low-row">
-    <td class="mono">${r.wbs}</td><td>${r.desc||'—'}</td><td>${r.pot}</td>
+    <td class="mono">${r.wbs}</td><td>${r.desc||'\u2014'}</td><td>${r.pot}</td>
     <td class="nr">${cr(r.budget)}</td>
     <td class="nr">${cr(r.actual)}</td>
     <td>${pctBar(r.actpct,'#2e86c1')}</td>
     <td class="nr">${cr(r.commit)}</td>
     <td class="pos">${cr(r.balance)}</td>
-  </tr>`).join('') || '<tr><td colspan="8">'+emptyH('✅','No low-utilisation WBS codes','')+'</td></tr>';
+  </tr>`).join('') || '<tr><td colspan="8">'+emptyH('\u2705','No low-utilisation WBS codes','')+'</td></tr>';
 }
 
 function renderRecurring(){
@@ -1108,6 +1126,11 @@ async function loadHistory(){
 
 loadData();
 loadHistory();
+
+// Back-to-top button visibility
+document.querySelector('.content').addEventListener('scroll',function(){
+  document.getElementById('back-to-top').style.display=this.scrollTop>300?'block':'none';
+});
 </script>
 </body>
 </html>
