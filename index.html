@@ -700,7 +700,9 @@ function processData(wbsRows,mRows){
   // Normalise column names — DB may use wbs_code/posting_month/amount_cr or wbs_key/month/amount
   mRows.forEach(r=>{
     r._wk=r.wbs_key||r.wbs_code||'';
-    r._mo=r.month||(r.posting_month?String(r.posting_month).slice(0,7):null);
+    // Always normalise month to YYYY-MM (posting_month may come as 2025-05-01)
+    const rawMo=r.month||r.posting_month||null;
+    r._mo=rawMo?String(rawMo).slice(0,7):null;
     r._amt=r.amount!=null?Number(r.amount):(r.amount_cr!=null?Number(r.amount_cr):0);
   });
   mRows.forEach(r=>{
