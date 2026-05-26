@@ -715,10 +715,12 @@ function processData(wbsRows,mRows){
   Object.keys(monthMap).forEach(k=>{
     const months=Object.keys(monthMap[k]).sort();
     const cnt=months.length;if(cnt<2)return;
+    // Use calendar month gaps (more accurate than day-based)
     const gaps=[];
     for(let i=1;i<months.length;i++){
-      const a=new Date(months[i-1]),b=new Date(months[i]);
-      if(!isNaN(a)&&!isNaN(b))gaps.push((b-a)/(1000*60*60*24*30));
+      const [ay,am]=months[i-1].split('-').map(Number);
+      const [by,bm]=months[i].split('-').map(Number);
+      gaps.push((by-ay)*12+(bm-am));
     }
     if(!gaps.length)return;
     const ag=gaps.reduce((s,g)=>s+g,0)/gaps.length;
@@ -732,7 +734,7 @@ function processData(wbsRows,mRows){
     const actual=actualMap[row.wbs_key]||0;
     const commit=Number(row.commitment)||0;
     const budget=Number(row.budget)||0;
-    const rec=recurMap[row.wbs_key]||{pattern:'-',avgMonthly:0};
+    const rec=recurMap[row.wbs_key]||recurMap[row.wbs_key?.replace(/[-\.]/g,'').toUpperCase()]||{pattern:'-',avgMonthly:0};
     const deploy=budget>0?(actual+commit)/budget:0;
     const actpct=budget>0?actual/budget:0;
     const balance=budget-actual-commit;
@@ -760,7 +762,24 @@ function processData(wbsRows,mRows){
     }
   });
 
-  recurring=merged.filter(r=>r.recur==='REC'||r.recur==='SEMI').sort((a,b)=>Math.abs(b.avgMonthly)-Math.abs(a.avgMonthly));
+  // Build recurring from ALL monthly rows (including project-level codes not in snapshot)
+  recurring=[];
+  Object.keys(recurMap).forEach(k=>{
+    const rec=recurMap[k];
+    if(rec.pattern==='-')return;
+    // Use wbsMap entry if exists, else create minimal entry
+    const snap=wbsMap[k];
+    recurring.push({
+      wbs: snap?snap.wbs:k,
+      wbsKey: k,
+      desc: snap?snap.desc:descFromKey(k),
+      pot: snap?snap.pot:potFromWbs(k),
+      recur: rec.pattern,
+      avgMonthly: rec.avgMonthly,
+      actual: snap?snap.actual:0,
+    });
+  });
+  recurring.sort((a,b)=>Math.abs(b.avgMonthly)-Math.abs(a.avgMonthly));
   allMonths=[...new Set(mRows.map(r=>r._mo).filter(Boolean))].sort();
   // Build POTs from BOTH merged (snapshot) and monthly rows for complete list
   const potSet=new Set(merged.map(r=>r.pot).filter(p=>p&&p!=='OTHER'));
@@ -904,7 +923,7 @@ function renderFlow(){
 function renderLocked(){
   const selPOT=document.getElementById('low-pot').value;
   // Leaf-only for locked cards and low util (parent codes are just summaries)
-  const selTowerL=document.getElementById('low-tower').value;
+  const selTowerL=document.getElementById('locked-tower').value;
   const selPOTL=document.getElementById('locked-pot')?.value||'';
   function towerOf(wk){const m=(wk||'').match(/GDR(\d{3})/);return m?'GDR'+m[1]:null;}
   const locked=merged.filter(r=>r.isLeaf&&r.actpct<0.3&&r.commit>0&&r.budget>0.1
