@@ -361,6 +361,12 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
       </div>
 
       <div class="sec-label">High commitment, low actual spend — money locked in open orders</div>
+      <div class="month-filters" style="margin-bottom:.75rem">
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Cost Type</label>
+        <select class="mf-sel" id="locked-pot"><option value="">All types</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Tower</label>
+        <select class="mf-sel" id="locked-tower"><option value="">All towers</option></select>
+      </div>
       <div class="locked-grid" id="locked-grid">
         <div class="empty"><div class="empty-i">⏳</div><div class="empty-t">Loading…</div></div>
       </div>
@@ -756,12 +762,21 @@ function processData(wbsRows,mRows){
 
   recurring=merged.filter(r=>r.recur==='REC'||r.recur==='SEMI').sort((a,b)=>Math.abs(b.avgMonthly)-Math.abs(a.avgMonthly));
   allMonths=[...new Set(mRows.map(r=>r._mo).filter(Boolean))].sort();
-  allPOTs=[...new Set(merged.map(r=>r.pot).filter(p=>p&&p!=='OTHER'))].sort();
-  // Extract towers from WBS codes e.g. BLR-GDR001 -> GDR001
-  allTowers=[...new Set(merged.map(r=>{
+  // Build POTs from BOTH merged (snapshot) and monthly rows for complete list
+  const potSet=new Set(merged.map(r=>r.pot).filter(p=>p&&p!=='OTHER'));
+  mRows.forEach(r=>{if(r._pot&&r._pot!=='OTHER')potSet.add(r._pot);});
+  allPOTs=[...potSet].sort();
+  // Build towers from monthly rows (they have the actual transaction WBS codes)
+  const towerSet=new Set();
+  mRows.forEach(r=>{
+    const m=(r._wk||'').match(/GDR(\d{3})/);
+    if(m)towerSet.add('GDR'+m[1]);
+  });
+  merged.forEach(r=>{
     const m=(r.wbs||r.wbsKey||'').match(/GDR(\d{3})/);
-    return m?'GDR'+m[1]:null;
-  }).filter(Boolean))].sort();
+    if(m)towerSet.add('GDR'+m[1]);
+  });
+  allTowers=[...towerSet].sort();
 
   populateSelects();
   renderAll();
@@ -890,8 +905,11 @@ function renderLocked(){
   const selPOT=document.getElementById('low-pot').value;
   // Leaf-only for locked cards and low util (parent codes are just summaries)
   const selTowerL=document.getElementById('low-tower').value;
+  const selPOTL=document.getElementById('locked-pot')?.value||'';
   function towerOf(wk){const m=(wk||'').match(/GDR(\d{3})/);return m?'GDR'+m[1]:null;}
-  const locked=merged.filter(r=>r.isLeaf&&r.actpct<0.3&&r.commit>0&&r.budget>0.1&&(!selTowerL||towerOf(r.wbsKey)===selTowerL)).sort((a,b)=>b.commit-a.commit);
+  const locked=merged.filter(r=>r.isLeaf&&r.actpct<0.3&&r.commit>0&&r.budget>0.1
+    &&(!selTowerL||towerOf(r.wbsKey)===selTowerL)
+    &&(!selPOTL||r.pot===selPOTL)).sort((a,b)=>b.commit-a.commit);
   document.getElementById('k-locked-n').textContent=locked.length;
   document.getElementById('k-locked-v').textContent=cr(sm(locked,'commit'));
   document.getElementById('locked-grid').innerHTML=locked.slice(0,20).map(r=>`<div class="locked-card">
@@ -1011,6 +1029,8 @@ function populateSelects(){
   setOpts('flow-month',months,'All months');
   setOpts('flow-pot',pots,'All types');
   setOpts('flow-tower',allTowers,'All towers');
+  setOpts('locked-pot',pots,'All types');
+  setOpts('locked-tower',allTowers,'All towers');
   setOpts('low-pot',pots,'All types');
   setOpts('low-tower',allTowers,'All towers');
   setOpts('rec-pot',pots,'All types');
@@ -1041,7 +1061,7 @@ function setActFilter(v){
 }
 
 ['flow-month','flow-pot','flow-tower'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFlow));
-['low-pot','low-tower'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLocked));
+['low-pot','low-tower','locked-pot','locked-tower'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLocked));
 ['rec-pot','rec-pat'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderRecurring));
 ['w-sfx','w-pot','w-rag','w-rec','w-tower'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderWBS));
 
