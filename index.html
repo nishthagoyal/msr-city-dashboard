@@ -654,9 +654,16 @@ function processData(wbsRows,mRows){
   });
 
   const monthMap={};
+  // Normalise column names — DB may use wbs_code/posting_month/amount_cr or wbs_key/month/amount
   mRows.forEach(r=>{
-    if(!monthMap[r.wbs_key])monthMap[r.wbs_key]={};
-    monthMap[r.wbs_key][r.month]=(monthMap[r.wbs_key][r.month]||0)+Number(r.amount);
+    r._wk=r.wbs_key||r.wbs_code||'';
+    r._mo=r.month||(r.posting_month?String(r.posting_month).slice(0,7):null);
+    r._amt=r.amount!=null?Number(r.amount):(r.amount_cr!=null?Number(r.amount_cr):0);
+  });
+  mRows.forEach(r=>{
+    if(!r._wk||!r._mo)return;
+    if(!monthMap[r._wk])monthMap[r._wk]={};
+    monthMap[r._wk][r._mo]=(monthMap[r._wk][r._mo]||0)+r._amt;
   });
   const actualMap={};
   Object.keys(monthMap).forEach(k=>{actualMap[k]=Object.values(monthMap[k]).reduce((s,v)=>s+v,0);});
@@ -696,10 +703,10 @@ function processData(wbsRows,mRows){
   // Build global wbsMap and enrich monthly rows with correct POT
   wbsMap={};
   merged.forEach(r=>wbsMap[r.wbsKey]=r);
-  mRows.forEach(r=>{r._pot=(wbsMap[r.wbs_key]?wbsMap[r.wbs_key].pot:potFromWbs(r.wbs_key));});
+  mRows.forEach(r=>{r._pot=(wbsMap[r._wk]?wbsMap[r._wk].pot:potFromWbs(r._wk));});
 
   recurring=merged.filter(r=>r.recur==='REC'||r.recur==='SEMI').sort((a,b)=>Math.abs(b.avgMonthly)-Math.abs(a.avgMonthly));
-  allMonths=[...new Set(mRows.map(r=>r.month).filter(Boolean))].sort();
+  allMonths=[...new Set(mRows.map(r=>r._mo).filter(Boolean))].sort();
   allPOTs=[...new Set(merged.map(r=>r.pot).filter(p=>p&&p!=='OTHER'))].sort();
 
   populateSelects();
@@ -782,9 +789,9 @@ function renderFlow(){
   const selPOT=document.getElementById('flow-pot').value;
   // Use _pot enriched in processData (derived from WBS code via SEG_POT map)
   let chartRows=monthlyRows;
-  if(selMonth)chartRows=chartRows.filter(r=>r.month===selMonth);
+  if(selMonth)chartRows=chartRows.filter(r=>r._mo===selMonth);
   const byPOT={};
-  chartRows.forEach(r=>{const pot=r._pot||'OTHER';byPOT[pot]=(byPOT[pot]||0)+Number(r.amount);});
+  chartRows.forEach(r=>{const pot=r._pot||'OTHER';byPOT[pot]=(byPOT[pot]||0)+r._amt;});
   const potsSorted=Object.keys(byPOT).filter(p=>byPOT[p]>0).sort((a,b)=>byPOT[b]-byPOT[a]).slice(0,12);
   const COLORS=['#c0392b','#e67e22','#f39c12','#2e86c1','#1abc9c','#8e44ad','#27ae60','#2980b9','#d35400','#16a085','#7f8c8d','#2c3e50'];
   mkChart('chart-pot','bar',{
@@ -794,7 +801,7 @@ function renderFlow(){
   const byMonth={};
   monthlyRows.forEach(r=>{
     if(selPOT&&(r._pot||'OTHER')!==selPOT)return;
-    byMonth[r.month]=(byMonth[r.month]||0)+Number(r.amount);
+    byMonth[r._mo]=(byMonth[r._mo]||0)+r._amt;
   });
   const mSorted=Object.keys(byMonth).sort().slice(-18);
   mkChart('chart-trend','line',{
@@ -802,19 +809,19 @@ function renderFlow(){
     datasets:[{data:mSorted.map(m=>+byMonth[m].toFixed(2)),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,0.08)',tension:.3,pointRadius:3,fill:true,borderWidth:1.5}]
   },{scales:{x:{ticks:{font:{size:9},maxRotation:45},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>'\u20b9'+v.toFixed(0)+'Cr'},grid:{color:'rgba(0,0,0,0.05)'}}}});
   let flowRows=monthlyRows;
-  if(selMonth)flowRows=flowRows.filter(r=>r.month===selMonth);
+  if(selMonth)flowRows=flowRows.filter(r=>r._mo===selMonth);
   if(selPOT)flowRows=flowRows.filter(r=>(r._pot||'OTHER')===selPOT);
-  flowRows=flowRows.filter(r=>Math.abs(Number(r.amount))>0);
+  flowRows=flowRows.filter(r=>Math.abs(r._amt)>0);
   flowRows.sort((a,b)=>Math.abs(Number(b.amount))-Math.abs(Number(a.amount)));
   document.getElementById('flow-body').innerHTML=flowRows.slice(0,500).map(r=>{
     const w=wbsMap[r.wbs_key];
     const pot=r._pot||'OTHER';
     return`<tr>
-      <td class="mono">${r.month}</td>
+      <td class="mono">${r._mo}</td>
       <td><span style="font-size:10px;padding:2px 7px;border-radius:3px;background:var(--paper2);color:var(--ink2);font-family:var(--font-mono)">${pot}</span></td>
-      <td class="mono">${r.wbs_key}</td>
-      <td>${w?w.desc:'\u2014'}</td>
-      <td class="${Number(r.amount)>=0?'pos':'neg'}">${cr(Number(r.amount))}</td>
+      <td class="mono">${r._wk}</td>
+      <td>${w?w.desc:'—'}</td>
+      <td class="${r._amt>=0?'pos':'neg'}">${cr(r._amt)}</td>
     </tr>`;
   }).join('');
 }
