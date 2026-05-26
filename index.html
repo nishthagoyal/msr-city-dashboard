@@ -3,431 +3,644 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MSR City — Cost Dashboard</title>
+<title>MSR City — Cost Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,500;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  :root {
-    --bg:#f9f8f6;--surface:#fff;--surface2:#f3f2ef;--border:rgba(0,0,0,.1);--border2:rgba(0,0,0,.18);
-    --text:#1a1a1a;--text2:#666;--text3:#999;
-    --red-bg:#FCEBEB;--red-bd:#F7C1C1;--red-t:#A32D2D;--red-dk:#791F1F;
-    --amb-bg:#FAEEDA;--amb-bd:#FAC775;--amb-t:#854F0B;--amb-dk:#633806;
-    --grn-bg:#EAF3DE;--grn-t:#3B6D11;
-    --teal-bg:#E1F5EE;--teal-t:#0F6E56;
-    --r:8px;--rl:12px;
-  }
-  @media(prefers-color-scheme:dark){:root{
-    --bg:#1a1a18;--surface:#242422;--surface2:#2e2e2b;--border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.18);
-    --text:#f0efe9;--text2:#aaa;--text3:#666;
-    --red-bg:#3d1515;--red-bd:#6b2424;--red-t:#f09595;--red-dk:#f7c1c1;
-    --amb-bg:#3d2a0a;--amb-bd:#7a5010;--amb-t:#fac775;--amb-dk:#faeeda;
-    --grn-bg:#1a2e0d;--grn-t:#97C459;--teal-bg:#082b1e;--teal-t:#5DCAA5;
-  }}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
-  /* TOP BAR */
-  .bar{background:var(--surface);border-bottom:.5px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:100;gap:1rem}
-  .bar-l div:first-child{font-size:10px;font-weight:500;color:var(--text2);letter-spacing:.07em;text-transform:uppercase}
-  .bar-l div:last-child{font-size:15px;font-weight:500}
-  .bar-r{display:flex;align-items:center;gap:8px;flex-shrink:0}
-  .pill{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--surface2);color:var(--text2);border:.5px solid var(--border);white-space:nowrap}
-  .pill.ok{background:var(--teal-bg);color:var(--teal-t);border-color:var(--teal-t)}
-  .pill.err{background:var(--red-bg);color:var(--red-t);border-color:var(--red-bd)}
-  .ubtn{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:5px 11px;border:.5px solid var(--border2);border-radius:var(--r);cursor:pointer;background:var(--surface);color:var(--text);white-space:nowrap;transition:background .12s}
-  .ubtn:hover{background:var(--surface2)}
-  /* TABS */
-  .tabs{background:var(--surface);border-bottom:.5px solid var(--border);padding:0 1.5rem;display:flex}
-  .tab{padding:9px 18px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-.5px;transition:color .12s;white-space:nowrap}
-  .tab:hover{color:var(--text)}.tab.on{color:var(--text);font-weight:500;border-bottom-color:var(--text)}
-  /* LAYOUT */
-  .main{max-width:1200px;margin:0 auto;padding:1.5rem}
-  .pg{display:none}.pg.on{display:block}
-  /* KPI ROW */
-  .krow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
-  .kpi{background:var(--surface2);border-radius:var(--r);padding:.9rem 1rem}
-  .kpi-l{font-size:10px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
-  .kpi-v{font-size:21px;font-weight:500}
-  .kpi-s{font-size:11px;color:var(--text2);margin-top:3px}
-  .kpi.danger .kpi-v{color:var(--red-t)}.kpi.warn .kpi-v{color:var(--amb-t)}
-  /* SECTION */
-  .sec{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.7rem;margin-top:1.4rem}
-  .sec:first-child{margin-top:0}
-  /* ALERTS */
-  .agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-bottom:1.5rem}
-  .ac{border-radius:var(--r);padding:.85rem 1rem;border:.5px solid}
-  .ac.red{background:var(--red-bg);border-color:var(--red-bd)}.ac.amb{background:var(--amb-bg);border-color:var(--amb-bd)}
-  .ac-w{font-size:10px;font-weight:600;font-family:monospace;margin-bottom:2px}
-  .ac.red .ac-w{color:var(--red-dk)}.ac.amb .ac-w{color:var(--amb-dk)}
-  .ac-d{font-size:12px;font-weight:500;margin-bottom:6px}
-  .ac.red .ac-d{color:var(--red-dk)}.ac.amb .ac-d{color:var(--amb-dk)}
-  .ac-ns{display:flex;gap:12px;flex-wrap:wrap}
-  .ac-n{font-size:11px}.ac-n b{font-weight:600}
-  .ac.red .ac-n{color:var(--red-t)}.ac.amb .ac-n{color:var(--amb-t)}
-  .pbar-w{background:rgba(0,0,0,.08);border-radius:3px;height:3px;margin-top:8px;overflow:hidden}
-  .pbar{height:3px;border-radius:3px}
-  /* CHART */
-  .cwrap{position:relative;width:100%;height:240px;margin-bottom:1.5rem}
-  .leg{display:flex;gap:14px;margin-bottom:7px;flex-wrap:wrap}
-  .leg-i{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
-  .leg-d{width:10px;height:10px;border-radius:2px;flex-shrink:0}
-  /* FILTERS */
-  .frow{display:flex;gap:8px;margin-bottom:1rem;align-items:center;flex-wrap:wrap;background:var(--surface);padding:.65rem 1rem;border-radius:var(--r);border:.5px solid var(--border)}
-  .frow label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
-  .frow select{font-size:12px;padding:4px 8px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--surface);color:var(--text);cursor:pointer}
-  .fsp{flex:1}.fct{font-size:11px;color:var(--text3)}
-  /* TABLE */
-  .tw{max-height:460px;overflow:auto;border-radius:var(--rl);border:.5px solid var(--border);background:var(--surface)}
-  .dt{width:100%;border-collapse:collapse;font-size:12px}
-  .dt th{text-align:left;padding:7px 11px;font-size:10px;font-weight:500;color:var(--text2);border-bottom:.5px solid var(--border);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;cursor:pointer;user-select:none;background:var(--surface);position:sticky;top:0;z-index:2}
-  .dt th:hover{color:var(--text)}
-  .dt td{padding:6px 11px;border-bottom:.5px solid var(--border);color:var(--text);white-space:nowrap}
-  .dt tr:last-child td{border-bottom:none}
-  .dt tbody tr:hover td{background:var(--surface2)}
-  .mn{font-family:monospace;font-size:11px}
-  .nr{text-align:right;font-variant-numeric:tabular-nums}
-  .neg{color:var(--red-t);text-align:right;font-variant-numeric:tabular-nums}
-  .pos{color:var(--grn-t);text-align:right;font-variant-numeric:tabular-nums}
-  /* BADGES */
-  .b{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap}
-  .b.rec{background:var(--teal-bg);color:var(--teal-t)}.b.semi{background:var(--amb-bg);color:var(--amb-t)}
-  .rag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
-  .rag.R{background:var(--red-bg);color:var(--red-t)}.rag.A{background:var(--amb-bg);color:var(--amb-t)}.rag.G{background:var(--grn-bg);color:var(--grn-t)}
-  /* MISC */
-  .empty{text-align:center;padding:2.5rem 1rem;color:var(--text2)}
-  .empty-i{font-size:26px;margin-bottom:.4rem}
-  .empty-t{font-size:14px;font-weight:500;margin-bottom:.25rem;color:var(--text)}
-  .empty-s{font-size:12px}
-  .ft td{font-weight:500;background:var(--surface2)!important}
-  .sg{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:1.2rem}
-  .sc{background:var(--surface);border:.5px solid var(--border);border-radius:var(--rl);padding:1.1rem}
-  .st{font-size:13px;font-weight:500;margin-bottom:.35rem}
-  .sb{font-size:12px;color:var(--text2);line-height:1.7}
-  .sb code{font-family:monospace;font-size:11px;background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--text)}
+/* ── RESET & BASE ─────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0f0e0c;--ink2:#5a5750;--ink3:#9a9690;
+  --paper:#faf9f6;--paper2:#f2f0eb;--paper3:#e8e5de;
+  --red:#c0392b;--red-lt:#fdf0ee;--red-bd:#f5c6c1;
+  --amber:#b5620a;--amb-lt:#fdf4e7;--amb-bd:#f5d49a;
+  --grn:#2e6b3e;--grn-lt:#eef6f1;--grn-bd:#a8d5b5;
+  --blue:#1a4a8a;--blue-lt:#eef3fb;
+  --over:#7b0e0e;--over-lt:#fce8e8;--over-bd:#e8a5a0;
+  --accent:#c0392b;
+  --font-head:'Fraunces',Georgia,serif;
+  --font-body:'DM Sans','Segoe UI',sans-serif;
+  --font-mono:'DM Mono',monospace;
+  --r:6px;--rl:10px;
+}
+body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-size:13px;line-height:1.5;min-height:100vh}
+
+/* ── LAYOUT ───────────────────────────────────────────── */
+.shell{display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto 1fr;min-height:100vh}
+.topbar{grid-column:1/-1;background:var(--ink);color:var(--paper);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;position:sticky;top:0;z-index:200}
+.sidebar{background:var(--paper2);border-right:1px solid var(--paper3);padding:1.25rem 0;position:sticky;top:41px;height:calc(100vh - 41px);overflow-y:auto;display:flex;flex-direction:column}
+.content{padding:1.5rem;overflow-x:hidden}
+
+/* ── TOPBAR ───────────────────────────────────────────── */
+.top-brand{display:flex;flex-direction:column;gap:1px}
+.top-co{font-size:9px;letter-spacing:.1em;text-transform:uppercase;opacity:.5;font-family:var(--font-body)}
+.top-name{font-family:var(--font-head);font-size:17px;font-weight:300;letter-spacing:-.01em}
+.top-right{display:flex;align-items:center;gap:10px}
+.status{font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);white-space:nowrap;font-family:var(--font-mono)}
+.status.ok{border-color:rgba(100,200,130,.4);color:rgba(130,230,160,.9);background:rgba(100,200,130,.1)}
+.status.err{border-color:rgba(230,100,90,.4);color:rgba(255,140,130,.9);background:rgba(230,100,90,.1)}
+.status.loading{border-color:rgba(245,200,100,.3);color:rgba(255,220,130,.8)}
+.top-upload-btn{font-size:11px;padding:4px 12px;border-radius:4px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.85);cursor:pointer;font-family:var(--font-body);transition:background .15s}
+.top-upload-btn:hover{background:rgba(255,255,255,.18)}
+
+/* ── SIDEBAR ──────────────────────────────────────────── */
+.nav-section{padding:.25rem 1rem .1rem;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:500;margin-top:.75rem}
+.nav-item{display:flex;align-items:center;gap:8px;padding:.5rem 1.1rem;cursor:pointer;color:var(--ink2);font-size:12px;transition:all .12s;border-left:2px solid transparent;margin:1px 0}
+.nav-item:hover{color:var(--ink);background:var(--paper3)}
+.nav-item.on{color:var(--ink);background:var(--paper3);border-left-color:var(--accent);font-weight:500}
+.nav-icon{font-size:13px;flex-shrink:0;width:16px;text-align:center}
+.nav-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:10px;font-family:var(--font-mono)}
+.nav-badge.red{background:var(--red-lt);color:var(--red)}
+.nav-badge.amb{background:var(--amb-lt);color:var(--amber)}
+.nav-spacer{flex:1}
+.nav-last-update{padding:.75rem 1.1rem;font-size:10px;color:var(--ink3);line-height:1.6;border-top:1px solid var(--paper3);margin-top:.5rem}
+
+/* ── PAGE SECTIONS ────────────────────────────────────── */
+.pg{display:none}.pg.on{display:block}
+.page-title{font-family:var(--font-head);font-size:22px;font-weight:300;color:var(--ink);margin-bottom:.25rem;letter-spacing:-.02em}
+.page-sub{font-size:12px;color:var(--ink3);margin-bottom:1.25rem}
+.sec-label{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:.6rem;margin-top:1.5rem;display:flex;align-items:center;gap:8px}
+.sec-label:first-child{margin-top:0}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--paper3)}
+
+/* ── KPI STRIP ────────────────────────────────────────── */
+.kstrip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.5rem}
+.kcard{background:var(--paper2);border:1px solid var(--paper3);border-radius:var(--rl);padding:.85rem 1rem}
+.kcard.alert{background:var(--over-lt);border-color:var(--over-bd)}
+.kcard.warn{background:var(--amb-lt);border-color:var(--amb-bd)}
+.kcard.locked{background:var(--blue-lt);border-color:#c5d8f5}
+.k-label{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px;font-weight:500}
+.k-val{font-size:20px;font-family:var(--font-head);font-weight:500;line-height:1;margin-bottom:3px}
+.kcard.alert .k-val{color:var(--over)}
+.kcard.warn .k-val{color:var(--amber)}
+.kcard.locked .k-val{color:var(--blue)}
+.k-sub{font-size:10px;color:var(--ink3)}
+
+/* ── ALERT CARDS ──────────────────────────────────────── */
+.alert-strip{display:flex;flex-direction:column;gap:6px;margin-bottom:1rem}
+.acard{border-radius:var(--r);padding:.7rem 1rem;border:1px solid;display:grid;grid-template-columns:auto 1fr auto auto auto;gap:.5rem 1rem;align-items:center}
+.acard.over{background:var(--over-lt);border-color:var(--over-bd)}
+.acard.red{background:var(--red-lt);border-color:var(--red-bd)}
+.acard.amb{background:var(--amb-lt);border-color:var(--amb-bd)}
+.acard-flag{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;font-family:var(--font-mono);white-space:nowrap}
+.acard.over .acard-flag{background:var(--over);color:#fff}
+.acard.red .acard-flag{background:var(--red);color:#fff}
+.acard.amb .acard-flag{background:var(--amber);color:#fff}
+.acard-wbs{font-family:var(--font-mono);font-size:11px;color:var(--ink2)}
+.acard-desc{font-size:12px;font-weight:500}
+.acard.over .acard-desc{color:var(--over)}
+.acard.red .acard-desc{color:var(--red)}
+.acard.amb .acard-desc{color:var(--amber)}
+.acard-stat{text-align:right;font-size:11px}
+.acard-stat b{display:block;font-family:var(--font-mono);font-size:12px;font-weight:500}
+.acard-pbar{width:80px;height:3px;background:var(--paper3);border-radius:2px;overflow:hidden}
+.acard-pbar-fill{height:3px;border-radius:2px}
+
+/* ── MONEY FLOW ───────────────────────────────────────── */
+.flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.flow-card{background:var(--paper2);border:1px solid var(--paper3);border-radius:var(--rl);padding:1rem}
+.flow-title{font-size:11px;font-weight:500;color:var(--ink2);margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.05em}
+.chart-wrap{position:relative;width:100%;height:200px}
+.chart-wrap-tall{position:relative;width:100%;height:260px}
+
+/* ── MONTHLY TABLE ────────────────────────────────────── */
+.month-filters{display:flex;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;align-items:center}
+.mf-sel{font-size:12px;padding:4px 8px;border:1px solid var(--paper3);border-radius:var(--r);background:var(--paper);color:var(--ink);cursor:pointer;font-family:var(--font-body)}
+.mf-tag{font-size:10px;padding:3px 9px;border-radius:20px;background:var(--paper2);border:1px solid var(--paper3);cursor:pointer;color:var(--ink2);transition:all .12s;white-space:nowrap}
+.mf-tag.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.mf-spacer{flex:1}
+.mf-count{font-size:11px;color:var(--ink3);font-family:var(--font-mono)}
+
+/* ── TABLE ────────────────────────────────────────────── */
+.tw{border-radius:var(--rl);border:1px solid var(--paper3);background:var(--paper);overflow:hidden}
+.tw-scroll{max-height:440px;overflow:auto}
+.dt{width:100%;border-collapse:collapse;font-size:12px}
+.dt th{text-align:left;padding:7px 10px;font-size:9px;font-weight:500;color:var(--ink3);border-bottom:1px solid var(--paper3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;cursor:pointer;user-select:none;background:var(--paper2);position:sticky;top:0;z-index:2}
+.dt th:hover{color:var(--ink)}
+.dt td{padding:6px 10px;border-bottom:1px solid var(--paper3);color:var(--ink);white-space:nowrap}
+.dt tr:last-child td{border-bottom:none}
+.dt tbody tr:hover td{background:var(--paper2)}
+.dt tbody tr.over-row td{background:var(--over-lt)}
+.dt tbody tr.low-row td{background:var(--blue-lt)}
+.mono{font-family:var(--font-mono);font-size:11px}
+.nr{text-align:right;font-family:var(--font-mono)}
+.neg{color:var(--over);text-align:right;font-family:var(--font-mono);font-weight:500}
+.pos{color:var(--grn);text-align:right;font-family:var(--font-mono)}
+.rag{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;font-weight:700;font-family:var(--font-mono);letter-spacing:.03em}
+.rag.R{background:var(--red-lt);color:var(--red)}.rag.A{background:var(--amb-lt);color:var(--amber)}.rag.G{background:var(--grn-lt);color:var(--grn)}
+.rag.OVER{background:var(--over);color:#fff}
+.badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;font-weight:500;font-family:var(--font-mono)}
+.badge.rec{background:var(--grn-lt);color:var(--grn)}.badge.semi{background:var(--amb-lt);color:var(--amber)}
+.pct-bar{display:inline-flex;align-items:center;gap:5px}
+.pct-bg{width:48px;height:4px;background:var(--paper3);border-radius:2px;overflow:hidden;flex-shrink:0}
+.pct-fill{height:4px;border-radius:2px}
+
+/* ── LOCKED BUDGET ────────────────────────────────────── */
+.locked-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:1rem}
+.locked-card{background:var(--blue-lt);border:1px solid #c5d8f5;border-radius:var(--r);padding:.8rem 1rem}
+.locked-wbs{font-family:var(--font-mono);font-size:10px;color:var(--blue);margin-bottom:2px}
+.locked-desc{font-size:12px;font-weight:500;color:var(--blue);margin-bottom:6px}
+.locked-stats{display:flex;gap:10px;flex-wrap:wrap}
+.locked-stat{font-size:11px;color:#3a6aaa}
+.locked-stat b{font-weight:600}
+
+/* ── UPLOAD PAGE ──────────────────────────────────────── */
+.up-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-width:820px}
+.up-card{background:var(--paper2);border:1px solid var(--paper3);border-radius:var(--rl);padding:1.25rem}
+.up-card.full{grid-column:1/-1}
+.up-card-title{font-size:13px;font-weight:500;margin-bottom:.9rem;color:var(--ink)}
+.field{margin-bottom:.8rem}
+.field label{display:block;font-size:10px;font-weight:500;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.field input{width:100%;font-size:12px;padding:6px 9px;border:1px solid var(--paper3);border-radius:var(--r);background:var(--paper);color:var(--ink);font-family:var(--font-body)}
+.field input:focus{outline:none;border-color:var(--ink3)}
+.drop{border:1.5px dashed var(--paper3);border-radius:var(--r);padding:1.25rem;text-align:center;cursor:pointer;transition:all .12s}
+.drop:hover,.drop.over{background:var(--paper3);border-color:var(--ink3)}
+.drop.done{border-color:var(--grn-bd);background:var(--grn-lt);border-style:solid}
+.drop-t{font-size:12px;font-weight:500;margin-bottom:2px}
+.drop-s{font-size:11px;color:var(--ink3)}
+.drop.done .drop-t{color:var(--grn)}.drop.done .drop-s{color:var(--grn)}
+.btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:7px 16px;border-radius:var(--r);cursor:pointer;border:none;font-family:var(--font-body);transition:opacity .12s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-dark{background:var(--ink);color:var(--paper)}.btn-dark:hover:not(:disabled){opacity:.8}
+.up-log{font-size:11px;color:var(--ink2);margin-top:.75rem;line-height:1.9;font-family:var(--font-mono);max-height:160px;overflow-y:auto}
+.up-log .ok{color:var(--grn)}.up-log .err{color:var(--red)}.up-log .info{color:var(--ink3)}
+.hist-row{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--paper3);font-size:12px}
+.hist-row:last-child{border:none}
+.hist-label{font-weight:500}
+.hist-meta{font-size:10px;color:var(--ink3);margin-top:1px}
+.hist-date{font-size:11px;color:var(--ink3);font-family:var(--font-mono)}
+
+/* ── EMPTY ────────────────────────────────────────────── */
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--ink3)}
+.empty-i{font-size:24px;margin-bottom:.4rem}
+.empty-t{font-size:13px;font-weight:500;margin-bottom:.2rem;color:var(--ink2)}
+.empty-s{font-size:11px}
+
+/* ── CONFIG BANNER ────────────────────────────────────── */
+.cfg{background:var(--amb-lt);border-bottom:1px solid var(--amb-bd);padding:6px 1.5rem;font-size:11px;color:var(--amber);display:none;text-align:center}
+.cfg.show{display:block}
+.cfg a{color:var(--amber);font-weight:500;cursor:pointer;text-decoration:underline}
+
+/* ── SETUP BOX ────────────────────────────────────────── */
+.setup-box{background:var(--paper2);border:1px solid var(--paper3);border-radius:var(--rl);padding:1.25rem;margin-bottom:1rem;max-width:820px}
+.setup-box pre{background:var(--paper3);padding:.75rem;border-radius:var(--r);font-size:10px;overflow-x:auto;white-space:pre;line-height:1.6;margin:.5rem 0}
+.setup-box code{font-family:var(--font-mono);font-size:11px;background:var(--paper3);padding:1px 5px;border-radius:3px}
+
+/* ── LEGEND ───────────────────────────────────────────── */
+.chart-legend{display:flex;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.cl-i{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink3)}
+.cl-d{width:10px;height:10px;border-radius:2px;flex-shrink:0}
 </style>
 </head>
 <body>
 
-<div class="bar">
-  <div class="bar-l">
-    <div>Godrej Properties</div>
-    <div>MSR City — Cost Dashboard</div>
-  </div>
-  <div class="bar-r">
-    <span class="pill" id="sp">No data loaded</span>
-    <label class="ubtn" for="fb">↑ Upload BVA</label>
-    <input type="file" id="fb" accept=".xlsx,.xls" style="display:none">
-    <label class="ubtn" for="fc">↑ Upload Cost Data</label>
-    <input type="file" id="fc" accept=".xlsx,.xls" style="display:none">
-  </div>
+<div class="cfg" id="cfg">
+  ⚠ Supabase not configured — dashboard is in demo mode.
+  <a onclick="switchNav('upload')">Complete setup in Upload tab →</a>
 </div>
 
-<div class="tabs">
-  <div class="tab on" data-tab="home">Overview &amp; Alerts</div>
-  <div class="tab" data-tab="fore">Recurring Forecast</div>
-  <div class="tab" data-tab="wbs">WBS Detail</div>
-  <div class="tab" data-tab="guide">Upload Guide</div>
-</div>
-
-<div class="main">
-
-  <!-- HOME -->
-  <div class="pg on" id="pg-home">
-    <div class="krow">
-      <div class="kpi"><div class="kpi-l">Total Budget</div><div class="kpi-v" id="kb">—</div><div class="kpi-s" id="kbs">upload BVA to begin</div></div>
-      <div class="kpi"><div class="kpi-l">Actual Spent</div><div class="kpi-v" id="ka">—</div><div class="kpi-s" id="kas"></div></div>
-      <div class="kpi"><div class="kpi-l">Committed</div><div class="kpi-v" id="kc">—</div><div class="kpi-s" id="kcs"></div></div>
-      <div class="kpi danger"><div class="kpi-l">Red &amp; Amber Alerts</div><div class="kpi-v" id="kr">—</div><div class="kpi-s" id="krs"></div></div>
+<div class="shell">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="top-brand">
+      <div class="top-co">Godrej Properties · MSR City</div>
+      <div class="top-name">Cost Intelligence</div>
     </div>
-    <div class="sec">⚠ Red &amp; Amber alerts — requires immediate attention</div>
-    <div class="agrid" id="ag">
-      <div class="empty" style="grid-column:1/-1"><div class="empty-i">📊</div><div class="empty-t">No data loaded yet</div><div class="empty-s">Upload your BVA file using the button above</div></div>
-    </div>
-    <div class="sec">Spend vs budget by cost type (top 10)</div>
-    <div class="leg">
-      <div class="leg-i"><div class="leg-d" style="background:#B5D4F4"></div>Budget</div>
-      <div class="leg-i"><div class="leg-d" style="background:#378ADD"></div>Actual Spent</div>
-      <div class="leg-i"><div class="leg-d" style="background:#F0997B"></div>Commitment</div>
-    </div>
-    <div class="cwrap"><canvas id="cc" role="img" aria-label="Bar chart of budget vs actual by cost type">Upload data to see chart</canvas></div>
-  </div>
-
-  <!-- FORECAST -->
-  <div class="pg" id="pg-fore">
-    <div class="krow">
-      <div class="kpi"><div class="kpi-l">Recurring (REC)</div><div class="kpi-v" id="frc">—</div><div class="kpi-s" id="frt"></div></div>
-      <div class="kpi"><div class="kpi-l">Semi-recurring (SEMI)</div><div class="kpi-v" id="fsc">—</div><div class="kpi-s" id="fst"></div></div>
-      <div class="kpi warn"><div class="kpi-l">Est. monthly burn</div><div class="kpi-v" id="fm">—</div><div class="kpi-s">based on posting history</div></div>
-      <div class="kpi"><div class="kpi-l">Forecast horizon</div><div class="kpi-v">3 months</div><div class="kpi-s" id="fh"></div></div>
-    </div>
-    <div class="sec">Projected recurring costs — next 3 months</div>
-    <div class="tw">
-      <table class="dt">
-        <thead><tr>
-          <th>WBS Code</th><th>Description</th><th>Cost Type</th><th>Pattern</th>
-          <th style="text-align:right">Avg Monthly</th>
-          <th style="text-align:right" id="fh1">Month 1</th>
-          <th style="text-align:right" id="fh2">Month 2</th>
-          <th style="text-align:right" id="fh3">Month 3</th>
-        </tr></thead>
-        <tbody id="ftb"><tr><td colspan="8"><div class="empty"><div class="empty-i">📅</div><div class="empty-t">Upload cost data to see forecast</div></div></td></tr></tbody>
-      </table>
+    <div class="top-right">
+      <span class="status loading" id="sp">Loading…</span>
+      <button class="top-upload-btn" onclick="switchNav('upload')">↑ Upload Data</button>
     </div>
   </div>
 
-  <!-- WBS DETAIL -->
-  <div class="pg" id="pg-wbs">
-    <div class="frow">
-      <label>Suffix</label><select id="fw"><option value="">All</option></select>
-      <label>Cost Type</label><select id="fp"><option value="">All</option></select>
-      <label>RAG</label>
-      <select id="fr"><option value="">All</option><option value="R">Red</option><option value="A">Amber</option><option value="G">Green</option></select>
-      <label>Pattern</label>
-      <select id="fre"><option value="">All</option><option value="REC">REC</option><option value="SEMI">SEMI</option></select>
-      <div class="fsp"></div><span class="fct" id="rc2">—</span>
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="nav-section">Monitor</div>
+    <div class="nav-item on" data-nav="alerts" onclick="switchNav('alerts')">
+      <span class="nav-icon">⚠</span> Alerts &amp; Overruns
+      <span class="nav-badge red" id="nb-alert">—</span>
     </div>
-    <div class="tw">
-      <table class="dt">
-        <thead><tr>
-          <th data-col="wbs">WBS Code ↕</th><th data-col="desc">Description ↕</th><th data-col="pot">Cost Type ↕</th>
-          <th data-col="budget" style="text-align:right">Budget (Cr) ↕</th>
-          <th data-col="actual" style="text-align:right">Actual (Cr) ↕</th>
-          <th data-col="actpct" style="text-align:right">Act % ↕</th>
-          <th data-col="commit" style="text-align:right">Commit (Cr) ↕</th>
-          <th data-col="deploy" style="text-align:right">Deploy % ↕</th>
-          <th data-col="balance" style="text-align:right">Balance (Cr) ↕</th>
-          <th data-col="recur">Pattern</th><th data-col="rag">RAG</th>
-        </tr></thead>
-        <tbody id="wbt"><tr><td colspan="11"><div class="empty"><div class="empty-i">📋</div><div class="empty-t">Upload BVA file to see WBS table</div></div></td></tr></tbody>
-      </table>
+    <div class="nav-item" data-nav="flow" onclick="switchNav('flow')">
+      <span class="nav-icon">→</span> Where Money Goes
     </div>
+    <div class="nav-item" data-nav="locked" onclick="switchNav('locked')">
+      <span class="nav-icon">⌛</span> Locked &amp; Unused
+      <span class="nav-badge amb" id="nb-locked">—</span>
+    </div>
+
+    <div class="nav-section">Forecast</div>
+    <div class="nav-item" data-nav="recurring" onclick="switchNav('recurring')">
+      <span class="nav-icon">↻</span> Recurring Burn
+    </div>
+
+    <div class="nav-section">Detail</div>
+    <div class="nav-item" data-nav="wbs" onclick="switchNav('wbs')">
+      <span class="nav-icon">≡</span> Full WBS Table
+    </div>
+
+    <div class="nav-spacer"></div>
+    <div class="nav-last-update" id="nav-update">No data loaded</div>
   </div>
 
-  <!-- GUIDE -->
-  <div class="pg" id="pg-guide">
-    <div style="max-width:700px">
-      <div class="sec" style="margin-top:0">How to update the dashboard</div>
-      <div class="sg">
-        <div class="sc"><div class="st">1 — Export from SAP</div><div class="sb">Run BVA report → save as <code>.xlsx</code>. Run cost data transaction dump → save as <code>.xlsx</code>. No formatting changes needed.</div></div>
-        <div class="sc"><div class="st">2 — Upload here</div><div class="sb">Click <strong>Upload BVA</strong> at top right → select file. Click <strong>Upload Cost Data</strong> → select file. Dashboard refreshes instantly — no page reload.</div></div>
-        <div class="sc"><div class="st">3 — BVA file format</div><div class="sb">Standard SAP BVA hierarchical export (same format as <code>G-Ramaiah_BVA_15_09_2026.xlsx</code>). Parser reads from row 16, Budget col 13, Actual col 14, Commitment col 15. Converts Rupees → Crore automatically.</div></div>
-        <div class="sc"><div class="st">4 — Cost data format</div><div class="sb">Standard SAP transaction dump (same format as <code>MSR_actual_cost_data_till_31_3_2026.xlsx</code>). Header on row 2, data from row 3. WBS element col 5, Amount col 9, Posting Date col 2, Dr/Cr col 26, Partner Object Type col 31.</div></div>
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ── ALERTS PAGE ── -->
+    <div class="pg on" id="pg-alerts">
+      <div class="page-title">Alerts &amp; Overruns</div>
+      <div class="page-sub">WBS codes needing immediate attention — overruns, near-limit, and at-risk packages</div>
+
+      <div class="kstrip">
+        <div class="kcard alert">
+          <div class="k-label">Overrun (&gt;100%)</div>
+          <div class="k-val" id="k-over">—</div>
+          <div class="k-sub" id="k-over-s">deployed beyond budget</div>
+        </div>
+        <div class="kcard alert">
+          <div class="k-label">Critical (&gt;95%)</div>
+          <div class="k-val" id="k-red">—</div>
+          <div class="k-sub">WBS codes</div>
+        </div>
+        <div class="kcard warn">
+          <div class="k-label">Amber (75–95%)</div>
+          <div class="k-val" id="k-amb">—</div>
+          <div class="k-sub">WBS codes</div>
+        </div>
+        <div class="kcard">
+          <div class="k-label">Total Budget</div>
+          <div class="k-val" id="kb">—</div>
+          <div class="k-sub" id="kbs"></div>
+        </div>
+        <div class="kcard">
+          <div class="k-label">Total Actual</div>
+          <div class="k-val" id="ka">—</div>
+          <div class="k-sub" id="kas"></div>
+        </div>
       </div>
-      <div class="sc" style="margin-bottom:1rem">
-        <div class="st">RAG &amp; recurring logic</div>
-        <div class="sb" style="margin-top:.4rem">
-          <strong>RAG</strong> = (Actual + Commitment) ÷ Budget &nbsp;|&nbsp; 🔴 &gt;95% &nbsp;|&nbsp; 🟡 75–95% &nbsp;|&nbsp; 🟢 &lt;75%<br><br>
-          <strong>Actuals</strong>: D (debit) rows added, C (credit/reversals) subtracted. Rows with blank WBS excluded (SAP summary rows).<br><br>
-          <strong>Recurring</strong>: REC = 6+ distinct posting months, avg gap ≤2 months. SEMI = 4–5 months.<br><br>
-          <strong>Cost Type</strong>: taken from Partner Object Type column. Where VLOOKUP errors exist in the file, derived automatically from WBS code segment (e.g. BR/SD→BROKER, MK→MKTNG, IF→INFRA, CO→CONSUL, CU→CC, FI→FINAN).
+
+      <div class="sec-label">Overrun — deployed beyond 100% of budget</div>
+      <div id="over-list" class="alert-strip">
+        <div class="empty"><div class="empty-i">⏳</div><div class="empty-t">Loading…</div></div>
+      </div>
+
+      <div class="sec-label">Red — deployed 95–100% of budget</div>
+      <div id="red-list" class="alert-strip">
+        <div class="empty"><div class="empty-i">⏳</div></div>
+      </div>
+
+      <div class="sec-label">Amber — deployed 75–95% of budget</div>
+      <div id="amb-list" class="alert-strip">
+        <div class="empty"><div class="empty-i">⏳</div></div>
+      </div>
+    </div>
+
+    <!-- ── WHERE MONEY GOES ── -->
+    <div class="pg" id="pg-flow">
+      <div class="page-title">Where is the money going?</div>
+      <div class="page-sub">Spend breakdown by cost type and tower — updated monthly from posting history</div>
+
+      <div class="month-filters" id="flow-filters">
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Month</label>
+        <select class="mf-sel" id="flow-month"><option value="">All months</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Cost Type</label>
+        <select class="mf-sel" id="flow-pot"><option value="">All types</option></select>
+      </div>
+
+      <div class="flow-grid">
+        <div class="flow-card">
+          <div class="flow-title">Spend by cost type (₹ Cr)</div>
+          <div class="chart-wrap"><canvas id="chart-pot"></canvas></div>
+        </div>
+        <div class="flow-card">
+          <div class="flow-title">Monthly spend trend (₹ Cr)</div>
+          <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+        </div>
+      </div>
+
+      <div class="sec-label">Monthly spend by cost type</div>
+      <div class="tw">
+        <div class="tw-scroll">
+          <table class="dt" id="flow-table">
+            <thead><tr>
+              <th>Month</th><th>Cost Type</th><th>WBS Code</th><th>Description</th>
+              <th style="text-align:right">Spend (Cr)</th>
+            </tr></thead>
+            <tbody id="flow-body">
+              <tr><td colspan="5"><div class="empty"><div class="empty-i">⏳</div><div class="empty-t">Loading…</div></div></td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-  </div>
 
-</div><!-- /main -->
+    <!-- ── LOCKED & UNUSED ── -->
+    <div class="pg" id="pg-locked">
+      <div class="page-title">Locked &amp; Unused Budget</div>
+      <div class="page-sub">Budget committed but not yet spent — money tied up in open orders and low-utilisation packages</div>
+
+      <div class="kstrip" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kcard locked">
+          <div class="k-label">High commitment, low actual</div>
+          <div class="k-val" id="k-locked-n">—</div>
+          <div class="k-sub">WBS codes (&lt;30% actual, &gt;0% commit)</div>
+        </div>
+        <div class="kcard locked">
+          <div class="k-label">Total committed unused</div>
+          <div class="k-val" id="k-locked-v">—</div>
+          <div class="k-sub">sitting in open orders</div>
+        </div>
+        <div class="kcard">
+          <div class="k-label">Very low utilisation</div>
+          <div class="k-val" id="k-low-n">—</div>
+          <div class="k-sub">WBS codes with &lt;30% actual spend</div>
+        </div>
+      </div>
+
+      <div class="sec-label">High commitment, low actual spend — money locked in open orders</div>
+      <div class="locked-grid" id="locked-grid">
+        <div class="empty"><div class="empty-i">⏳</div><div class="empty-t">Loading…</div></div>
+      </div>
+
+      <div class="sec-label">Low utilisation (&lt;30% budget spent)</div>
+      <div class="month-filters">
+        <div class="mf-tag on" id="lt30-tag" onclick="setLowFilter(30)">Under 30%</div>
+        <div class="mf-tag" id="lt20-tag" onclick="setLowFilter(20)">Under 20%</div>
+        <div class="mf-tag" id="lt10-tag" onclick="setLowFilter(10)">Under 10%</div>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:4px">Cost Type</label>
+        <select class="mf-sel" id="low-pot"><option value="">All types</option></select>
+        <div class="mf-spacer"></div>
+        <span class="mf-count" id="low-count">—</span>
+      </div>
+      <div class="tw"><div class="tw-scroll">
+        <table class="dt">
+          <thead><tr>
+            <th data-col="wbs">WBS ↕</th><th data-col="desc">Description ↕</th><th data-col="pot">Type ↕</th>
+            <th data-col="budget" style="text-align:right">Budget ↕</th>
+            <th data-col="actual" style="text-align:right">Actual ↕</th>
+            <th data-col="actpct" style="text-align:right">Act % ↕</th>
+            <th data-col="commit" style="text-align:right">Committed ↕</th>
+            <th data-col="balance" style="text-align:right">Balance ↕</th>
+          </tr></thead>
+          <tbody id="low-body"></tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ── RECURRING ── -->
+    <div class="pg" id="pg-recurring">
+      <div class="page-title">Recurring Monthly Burn</div>
+      <div class="page-sub">Costs that appear consistently across months — use these to forecast upcoming spend</div>
+
+      <div class="kstrip" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kcard"><div class="k-label">Recurring (REC)</div><div class="k-val" id="frc">—</div><div class="k-sub" id="frt"></div></div>
+        <div class="kcard"><div class="k-label">Semi-recurring (SEMI)</div><div class="k-val" id="fsc">—</div><div class="k-sub" id="fst"></div></div>
+        <div class="kcard warn"><div class="k-label">Est. monthly burn</div><div class="k-val" id="fm">—</div><div class="k-sub">from all recurring lines</div></div>
+        <div class="kcard"><div class="k-label">Next 3 months</div><div class="k-val" id="f3m">—</div><div class="k-sub" id="fh"></div></div>
+      </div>
+
+      <div class="month-filters">
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Cost Type</label>
+        <select class="mf-sel" id="rec-pot"><option value="">All types</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Pattern</label>
+        <select class="mf-sel" id="rec-pat">
+          <option value="">All</option><option value="REC">REC only</option><option value="SEMI">SEMI only</option>
+        </select>
+        <div class="mf-spacer"></div>
+        <span class="mf-count" id="rec-count">—</span>
+      </div>
+
+      <div class="flow-card" style="margin-bottom:1rem">
+        <div class="flow-title">Monthly burn by cost type (₹ Cr avg)</div>
+        <div class="chart-wrap"><canvas id="chart-rec-pot"></canvas></div>
+      </div>
+
+      <div class="tw"><div class="tw-scroll">
+        <table class="dt">
+          <thead><tr>
+            <th>WBS Code</th><th>Description</th><th>Cost Type</th><th>Pattern</th>
+            <th style="text-align:right">Avg Monthly</th>
+            <th style="text-align:right" id="fh1">Month 1</th>
+            <th style="text-align:right" id="fh2">Month 2</th>
+            <th style="text-align:right" id="fh3">Month 3</th>
+          </tr></thead>
+          <tbody id="rec-body"></tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ── WBS DETAIL ── -->
+    <div class="pg" id="pg-wbs">
+      <div class="page-title">Full WBS Table</div>
+      <div class="page-sub">All 1,275 WBS codes — filter, sort, and drill down</div>
+      <div class="month-filters">
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Suffix</label>
+        <select class="mf-sel" id="w-sfx"><option value="">All</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Type</label>
+        <select class="mf-sel" id="w-pot"><option value="">All</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">RAG</label>
+        <select class="mf-sel" id="w-rag">
+          <option value="">All</option><option value="OVER">Overrun</option>
+          <option value="R">Red</option><option value="A">Amber</option><option value="G">Green</option>
+        </select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Pattern</label>
+        <select class="mf-sel" id="w-rec">
+          <option value="">All</option><option value="REC">REC</option><option value="SEMI">SEMI</option>
+        </select>
+        <div class="mf-tag on" id="tag-all" onclick="setActFilter('all')">All</div>
+        <div class="mf-tag" id="tag-low" onclick="setActFilter('low')">Low util &lt;30%</div>
+        <div class="mf-spacer"></div>
+        <span class="mf-count" id="w-count">—</span>
+      </div>
+      <div class="tw"><div class="tw-scroll">
+        <table class="dt">
+          <thead><tr>
+            <th data-col="wbs">WBS ↕</th><th data-col="desc">Description ↕</th><th data-col="pot">Type ↕</th>
+            <th data-col="budget" style="text-align:right">Budget ↕</th>
+            <th data-col="actual" style="text-align:right">Actual ↕</th>
+            <th data-col="actpct" style="text-align:right">Act% ↕</th>
+            <th data-col="commit" style="text-align:right">Commit ↕</th>
+            <th data-col="deploy" style="text-align:right">Deploy% ↕</th>
+            <th data-col="balance" style="text-align:right">Balance ↕</th>
+            <th data-col="recur">Pattern</th><th data-col="rag">RAG</th>
+          </tr></thead>
+          <tbody id="wbs-body"></tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ── UPLOAD ── -->
+    <div class="pg" id="pg-upload">
+      <div class="page-title">Upload Monthly Data</div>
+      <div class="page-sub">Add new SAP exports — data appends to full history, everyone sees the update instantly</div>
+
+      <div class="setup-box" id="setup-box" style="display:none;border-color:var(--amb-bd);background:var(--amb-lt)">
+        <div style="font-size:13px;font-weight:500;color:var(--amber);margin-bottom:.75rem">⚙ One-time Supabase setup</div>
+        <div style="font-size:12px;color:var(--amber);line-height:1.9">
+          <b>1.</b> Go to <a href="https://supabase.com" target="_blank" style="color:var(--amber)">supabase.com</a> → New project → name it <code>msr-city</code><br>
+          <b>2.</b> SQL Editor → New query → paste and run the setup SQL<br>
+          <b>3.</b> Settings → API → copy Project URL and anon public key into CONFIG block in this file
+        </div>
+      </div>
+
+      <div class="up-grid">
+        <div class="up-card">
+          <div class="up-card-title">Upload SAP files</div>
+          <div class="field">
+            <label>Team upload key</label>
+            <input type="password" id="up-key" placeholder="Enter team upload key">
+          </div>
+          <div class="field">
+            <label>Label (optional)</label>
+            <input type="text" id="up-label" placeholder="e.g. March 2026 update">
+          </div>
+          <div class="field">
+            <label>BVA file</label>
+            <div class="drop" id="drop-bva" onclick="document.getElementById('inp-bva').click()">
+              <div class="drop-t">Click to select BVA file</div>
+              <div class="drop-s">.xlsx SAP BVA export</div>
+            </div>
+            <input type="file" id="inp-bva" accept=".xlsx,.xls" style="display:none">
+          </div>
+          <div class="field">
+            <label>Cost data file</label>
+            <div class="drop" id="drop-cost" onclick="document.getElementById('inp-cost').click()">
+              <div class="drop-t">Click to select Cost Data file</div>
+              <div class="drop-s">.xlsx SAP transaction dump</div>
+            </div>
+            <input type="file" id="inp-cost" accept=".xlsx,.xls" style="display:none">
+          </div>
+          <button class="btn btn-dark" id="up-btn" onclick="doUpload()" disabled>Upload &amp; Save to Database</button>
+          <div class="up-log" id="up-log"></div>
+        </div>
+
+        <div class="up-card">
+          <div class="up-card-title">Upload history</div>
+          <div id="hist-list"><div style="font-size:12px;color:var(--ink3)">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /shell -->
 
 <script>
-// ── STATE ──────────────────────────────────────────────────────
-let bva=[],merged=[],recurring=[],chartI=null,sCol='rag',sDir=1,bvaOk=false,costOk=false;
+// ╔══════════════════════════════════════════════════╗
+// ║  CONFIG                                          ║
+// ╚══════════════════════════════════════════════════╝
+const SUPABASE_URL   = 'https://dmnsplnrtcfyldljlbkd.supabase.co';
+const SUPABASE_KEY   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtbnNwbG5ydGNmeWxkbGpsYmtkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNDEyNDUsImV4cCI6MjA5NDkxNzI0NX0.Rt7cx0TIDVSA0NeF_gpVMdilVjHKcR8n43Lur12aY2o';
+const UPLOAD_SECRET  = 'MSRCity2026';
 
-// WBS segment -> Partner Object Type map (derived from analysis of actual file)
+// ── WBS Segment -> POT map ─────────────────────────
 const SEG_POT={
-  // Construction
   SB:'CONST',SS:'CONST',FN:'CONST',SE:'CONST',SM:'CONST',
   EX:'CONST',FD:'CONST',PG:'CONST',RC:'CONST',MP:'CONST',
   CN:'CONST',RF:'CONST',PT:'CONST',ST:'CONST',RT:'CONST',
   SL:'CONST',RA:'CONST',SA:'CONST',BS:'CONST',BW:'CONST',
-  PL:'CONST',WP:'CONST',ML:'CONST',CP:'CONST',
-  // Common project
-  CM:'CC',CA:'CONST',  // CA = Common Amenities
-  IF:'INFRA',          // Infrastructure Development (NOT finance)
-  SO:'SITEOH',
-  // Sales & distribution
+  PL:'CONST',WP:'CONST',ML:'CONST',CP:'CONST',CB:'CONST',
+  CA:'CONST',ES:'CONST',
+  CM:'CC',CU:'CC',
+  IF:'INFRA',
+  SO:'SITEOH',LI:'SITEOH',
   SD:'BROKER',BR:'BROKER',
-  // Consultants
-  CO:'CONSUL',CC:'CC',
-  // Prelims
+  CO:'CONSUL',
   PM:'Prelims',
-  // Liaisoning
   LA:'LIASO',
-  // Land
-  LN:'LAND',LD:'LAND',
-  // Legal
+  LN:'LAND',LD:'LAND',RD:'LAND',
   LG:'Legal',
-  // Marketing
   MK:'MKTNG',
-  // Finance
-  FI:'FINAN',FC:'FINAN',DR:'FINAN',
-  // OH
+  FI:'FINAN',FC:'FINAN',DR:'FINAN',RB:'FINAN',
   OH:'REGOH',
-  // Other
   CT:'CONST',PC:'PMC',
-  CU:'CC',             // Customer Centricity
-  DM:'DM Fees',
-  CJ:'COC',            // Contingencies
-  ES:'CONST',          // Common Services External
-  RD:'LAND',           // Redevelopment
-  RB:'FINAN',          // Royalty/Branding
-  RS:'COC',            // Reversal Service Tax
-  DF:'DM Fees',        // Development fees
-  LI:'SITEOH',         // Labour incentives
-  CB:'CONST',          // Contractor bonus
+  DM:'DM Fees',DF:'DM Fees',
+  CJ:'COC',RS:'COC',
 };
-
-// CO Object Name -> POT for names seen in actual file
 const CO_POT={
   'Financial & Interest Charges -GDR':'FINAN',
   'Financial & Interest Charges -GDR FP':'FINAN',
   'Regional OH -GDR':'REGOH',
 };
 
-// ── TABS ───────────────────────────────────────────────────────
-document.querySelectorAll('.tab').forEach(t=>{
-  t.addEventListener('click',()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
-    document.querySelectorAll('.pg').forEach(x=>x.classList.remove('on'));
-    t.classList.add('on');
-    document.getElementById('pg-'+t.dataset.tab).classList.add('on');
-  });
-});
-
-// ── UPLOADS ────────────────────────────────────────────────────
-document.getElementById('fb').addEventListener('change',e=>handleBVA(e.target.files[0]));
-document.getElementById('fc').addEventListener('change',e=>handleCost(e.target.files[0]));
-
-function setSt(msg,cls){const p=document.getElementById('sp');p.textContent=msg;p.className='pill'+(cls?' '+cls:'');}
-
-function handleBVA(file){
-  if(!file)return; setSt('Reading BVA…');
-  readXL(file,wb=>{try{bva=parseBVA(wb);bvaOk=true;setSt('BVA loaded — '+bva.length+' WBS rows'+(costOk?' · Both files ready ✓':''));rebuild();}catch(e){setSt('BVA error: '+e.message,'err');console.error(e);}});
-}
-function handleCost(file){
-  if(!file)return; setSt('Reading cost data…');
-  readXL(file,wb=>{try{const cd=parseCost(wb);costOk=true;setSt('Cost data loaded — '+cd.length+' rows'+(bvaOk?' · Both files ready ✓':''));mergeCost(cd);rebuild();}catch(e){setSt('Cost data error: '+e.message,'err');console.error(e);}});
-}
-function readXL(file,cb){
-  const r=new FileReader();
-  r.onload=e=>cb(XLSX.read(e.target.result,{type:'array',cellDates:true,raw:false}));
-  r.readAsArrayBuffer(file);
-}
-
-// ── BVA PARSER ─────────────────────────────────────────────────
-// SAP BVA hierarchical export — hardcoded to actual file format
-// Header row 14 (index 13). Data from row 16 (index 15).
-// WBS code in cols 2-8, prefixed "WBS BLR-"
-// Budget=col12, Actual=col13, Commitment=col14 (0-indexed)
-// Values in Rupees → divide by 1e7 to get Crore
-function parseBVA(wb){
-  const ws=wb.Sheets[wb.SheetNames[0]];
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:false});
-  function pn(v){if(v==null)return 0;const n=parseFloat(String(v).replace(/,/g,''));return isNaN(n)?0:n;}
-  const out=[];
-  for(let i=15;i<rows.length;i++){
-    const row=rows[i];if(!row)continue;
-    let wbs=null,wc=-1;
-    for(let c=2;c<=8;c++){
-      const v=row[c];
-      if(v&&String(v).trim().startsWith('WBS BLR-')){wbs=String(v).trim().replace(/^WBS\s+/,'');wc=c;break;}
-    }
-    if(!wbs)continue;
-    let desc='';
-    for(let c=wc+1;c<=wc+5&&c<row.length;c++){if(row[c]&&String(row[c]).trim()){desc=String(row[c]).trim();break;}}
-    out.push({
-      wbs, wbsKey:wbs.replace(/[-\.]/g,'').toUpperCase(), desc,
-      budget:pn(row[12])/1e7, bvaActual:pn(row[13])/1e7, commit:pn(row[14])/1e7,
-      pot:'—', recur:'-', avgMonthly:0,
-    });
-  }
-  if(!out.length)throw new Error('No WBS rows found. Is this the correct BVA file?');
-  return out;
-}
-
-// ── COST DATA PARSER ───────────────────────────────────────────
-// SAP transaction dump — hardcoded to actual file format
-// Header row 2 (index 1). Data from row 3 (index 2).
-// Col indices (0-based): WBS=4, Amount=8, PostDate=1, DrCr=25, POT=30, COName=6
-// Values in Rupees. Blank WBS rows = SAP summary totals, excluded.
-// POT derived from: (1) file value, (2) CO Name lookup, (3) WBS segment
-let costActualMap={};   // wbsKey -> total signed amount (Cr)
-let costPotMap={};      // wbsKey -> best POT
-let costMonthMap={};    // wbsKey -> {month -> amount}
-
-function derivePOT(wbs, coName, potRaw){
-  if(potRaw&&!potRaw.includes('VLOOKUP')&&!potRaw.includes('REF')&&potRaw!=='None')return potRaw;
+function derivePOT(wbs,coName,potRaw){
+  if(potRaw&&!potRaw.includes('VLOOKUP')&&!potRaw.includes('REF')&&potRaw!=='None'&&potRaw.trim())return potRaw.trim();
   if(CO_POT[coName])return CO_POT[coName];
   const m=wbs.match(/([A-Z]{2})\d*$/);
   if(m&&SEG_POT[m[1]])return SEG_POT[m[1]];
-  return 'UNKNOWN';
+  return 'OTHER';
 }
 
-function parseCost(wb){
-  const ws=wb.Sheets[wb.SheetNames[0]];
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true,cellDates:true});
-  // Reset maps
-  costActualMap={};costPotMap={};costMonthMap={};
-  // Build CO Name -> POT from valid rows first
-  for(let i=2;i<rows.length;i++){
-    const row=rows[i];if(!row)continue;
-    const potRaw=String(row[30]||'');const coName=String(row[6]||'');
-    if(potRaw&&!potRaw.includes('VLOOKUP')&&!potRaw.includes('REF')&&potRaw!=='None'&&coName)
-      if(!CO_POT[coName])CO_POT[coName]=potRaw;
-  }
-  const valid=[];
-  for(let i=2;i<rows.length;i++){
-    const row=rows[i];if(!row)continue;
-    const wbsRaw=String(row[4]||'').trim();
-    if(!wbsRaw||wbsRaw==='null')continue; // skip blank WBS (SAP summary rows)
-    const amt=typeof row[8]==='number'?row[8]:parseFloat(String(row[8]||'').replace(/,/g,''));
-    if(isNaN(amt)||amt===0)continue;
-    const drcr=String(row[25]||'');
-    const signed=drcr==='D'?amt:(drcr==='C'?-amt:amt);
-    const coName=String(row[6]||'');
-    const potRaw=String(row[30]||'');
-    const pot=derivePOT(wbsRaw,coName,potRaw);
-    const wbsKey=wbsRaw.replace(/[-\.]/g,'').toUpperCase();
-    // Posting date — handles Date object, DD-MM-YYYY, DD.MM.YYYY, YYYY-MM-DD, Excel serial
-    let month=null;
-    const rd=row[1];
-    if(rd instanceof Date&&!isNaN(rd)){
-      month=rd.getFullYear()+'-'+String(rd.getMonth()+1).padStart(2,'0');
-    } else if(typeof rd==='string'&&rd.trim().length>=7){
-      const ds=rd.trim();
-      if(/^\d{2}[-.]\d{2}[-.]\d{4}$/.test(ds)){
-        month=ds.slice(6,10)+'-'+ds.slice(3,5);
-      } else if(/^\d{4}-\d{2}/.test(ds)){
-        month=ds.slice(0,7);
-      } else if(/^\d{5,}$/.test(ds)){
-        const d=new Date(Math.round((parseInt(ds)-25569)*86400*1000));
-        if(!isNaN(d))month=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-      }
-    } else if(typeof rd==='number'){
-      const d=new Date(Math.round((rd-25569)*86400*1000));
-      if(!isNaN(d))month=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    }
-    // Accumulate
-    costActualMap[wbsKey]=(costActualMap[wbsKey]||0)+signed/1e7;
-    if(!costPotMap[wbsKey])costPotMap[wbsKey]={};
-    costPotMap[wbsKey][pot]=(costPotMap[wbsKey][pot]||0)+Math.abs(signed);
-    if(month){
-      if(!costMonthMap[wbsKey])costMonthMap[wbsKey]={};
-      costMonthMap[wbsKey][month]=(costMonthMap[wbsKey][month]||0)+signed/1e7;
-    }
-    valid.push(1);
-  }
-  return valid;
+// ── CONFIG CHECK ───────────────────────────────────
+const CONFIGURED=!SUPABASE_URL.includes('YOUR_');
+if(!CONFIGURED){
+  document.getElementById('cfg').classList.add('show');
+  document.getElementById('setup-box').style.display='block';
 }
 
-function mergeCost(cd){
-  // Already accumulated into costActualMap etc. during parseCost
+// ── STATE ──────────────────────────────────────────
+let merged=[], recurring=[], monthlyRows=[], allMonths=[], allPOTs=[];
+let charts={};
+let lowThreshold=30, actFilter='all';
+let wbsSortCol='rag', wbsSortDir=1;
+let lowSortCol='actpct', lowSortDir=1;
+
+// ── NAV ────────────────────────────────────────────
+function switchNav(t){
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.pg').forEach(x=>x.classList.remove('on'));
+  const ni=document.querySelector('[data-nav="'+t+'"]');
+  if(ni)ni.classList.add('on');
+  document.getElementById('pg-'+t).classList.add('on');
+}
+document.querySelectorAll('.nav-item[data-nav]').forEach(n=>{
+  n.addEventListener('click',()=>switchNav(n.dataset.nav));
+});
+
+// ── SUPABASE ───────────────────────────────────────
+async function sb(path,opts={}){
+  const res=await fetch(SUPABASE_URL+'/rest/v1/'+path,{
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':opts.prefer||'return=minimal',...(opts.headers||{})},
+    method:opts.method||'GET',
+    body:opts.body?JSON.stringify(opts.body):undefined,
+  });
+  if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t);}
+  if(!opts.method||opts.method==='GET'||opts.prefer?.includes('return=representation'))return res.json();
+  return null;
 }
 
-// ── REBUILD ────────────────────────────────────────────────────
-function rebuild(){
-  if(!bvaOk)return;
-  // Recurring detection
+// ── LOAD ───────────────────────────────────────────
+async function loadData(){
+  setSt('Loading…','loading');
+  if(!CONFIGURED){setSt('Not configured','err');renderEmpty();return;}
+  try{
+    const uploads=await sb('uploads?select=*&order=uploaded_at.desc&limit=1',{headers:{'Accept':'application/json'}});
+    if(!uploads?.length){setSt('No data yet','');renderEmpty();loadHistory();return;}
+    const latest=uploads[0];
+    const [wbsRows,mRows]=await Promise.all([
+      sb('wbs_snapshot?select=*&upload_id=eq.'+latest.id+'&limit=5000',{headers:{'Accept':'application/json'}}),
+      sb('monthly_spend?select=*&limit=200000',{headers:{'Accept':'application/json'}}),
+    ]);
+    monthlyRows=mRows||[];
+    processData(wbsRows||[],monthlyRows);
+    const d=new Date(latest.uploaded_at);
+    setSt((latest.label||'Loaded')+' · '+d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}),'ok');
+    document.getElementById('nav-update').textContent='Last update:\n'+(latest.label||'—')+'\n'+d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    loadHistory();
+  }catch(e){setSt('Error: '+e.message,'err');console.error(e);}
+}
+
+function processData(wbsRows,mRows){
+  const monthMap={};
+  mRows.forEach(r=>{
+    if(!monthMap[r.wbs_key])monthMap[r.wbs_key]={};
+    monthMap[r.wbs_key][r.month]=(monthMap[r.wbs_key][r.month]||0)+Number(r.amount);
+  });
+  const actualMap={};
+  Object.keys(monthMap).forEach(k=>{actualMap[k]=Object.values(monthMap[k]).reduce((s,v)=>s+v,0);});
+
   const recurMap={};
-  Object.keys(costMonthMap).forEach(key=>{
-    const months=Object.keys(costMonthMap[key]).sort();
+  Object.keys(monthMap).forEach(k=>{
+    const months=Object.keys(monthMap[k]).sort();
     const cnt=months.length;if(cnt<2)return;
     const gaps=[];
     for(let i=1;i<months.length;i++){
@@ -436,150 +649,451 @@ function rebuild(){
     }
     if(!gaps.length)return;
     const ag=gaps.reduce((s,g)=>s+g,0)/gaps.length;
-    const tot=Object.values(costMonthMap[key]).reduce((s,v)=>s+v,0);
+    const tot=Object.values(monthMap[k]).reduce((s,v)=>s+v,0);
     let pat='-';
     if(cnt>=6&&ag<=2)pat='REC';else if(cnt>=4&&ag<=2)pat='SEMI';
-    recurMap[key]={pattern:pat,avgMonthly:tot/cnt};
+    recurMap[k]={pattern:pat,avgMonthly:tot/cnt};
   });
-  // Merge into BVA rows
-  merged=bva.map(row=>{
-    const actual=costOk?(costActualMap[row.wbsKey]||0):row.bvaActual;
-    // Best POT from cost data
-    let pot='—';
-    if(costPotMap[row.wbsKey]){
-      pot=Object.entries(costPotMap[row.wbsKey]).sort((a,b)=>b[1]-a[1])[0][0];
-    }
-    const rec=recurMap[row.wbsKey]||{pattern:'-',avgMonthly:0};
-    const deploy=row.budget>0?(actual+row.commit)/row.budget:0;
-    const actpct=row.budget>0?actual/row.budget:0;
-    const balance=row.budget-actual-row.commit;
-    const rag=deploy>0.95?'R':deploy>0.75?'A':'G';
-    return{...row,actual,pot,recur:rec.pattern,avgMonthly:rec.avgMonthly,deploy,actpct,balance,rag};
+
+  merged=wbsRows.map(row=>{
+    const actual=actualMap[row.wbs_key]||0;
+    const commit=Number(row.commitment)||0;
+    const budget=Number(row.budget)||0;
+    const rec=recurMap[row.wbs_key]||{pattern:'-',avgMonthly:0};
+    const deploy=budget>0?(actual+commit)/budget:0;
+    const actpct=budget>0?actual/budget:0;
+    const balance=budget-actual-commit;
+    let rag=deploy>1.0?'OVER':deploy>0.95?'R':deploy>0.75?'A':'G';
+    return{wbs:row.wbs,wbsKey:row.wbs_key,desc:row.description,pot:row.pot||'OTHER',
+      budget,actual,commit,deploy,actpct,balance,rag,recur:rec.pattern,avgMonthly:rec.avgMonthly};
   });
+
   recurring=merged.filter(r=>r.recur==='REC'||r.recur==='SEMI').sort((a,b)=>Math.abs(b.avgMonthly)-Math.abs(a.avgMonthly));
-  if(bvaOk&&costOk)setSt('Both files loaded ✓ — '+merged.length+' WBS codes','ok');
-  renderKPIs();renderAlerts();renderChart();renderForecast();populateFilters();renderWBS();
+  allMonths=[...new Set(mRows.map(r=>r.month).filter(Boolean))].sort();
+  allPOTs=[...new Set(merged.map(r=>r.pot).filter(p=>p&&p!=='OTHER'))].sort();
+
+  populateSelects();
+  renderAll();
 }
 
-// ── FORMATTERS ─────────────────────────────────────────────────
+function renderEmpty(){
+  const msg='<tr><td colspan="20">'+emptyH('📊','No data uploaded yet','Go to Upload Data in the sidebar')+'</td></tr>';
+  ['wbs-body','rec-body','flow-body','low-body'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.innerHTML=msg;
+  });
+  ['over-list','red-list','amb-list','locked-grid'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.innerHTML=emptyH('📊','No data yet','Upload SAP files to begin');
+  });
+}
+
+function renderAll(){
+  renderAlerts();
+  renderFlow();
+  renderLocked();
+  renderRecurring();
+  renderWBS();
+  updateNavBadges();
+}
+
 function cr(n){if(n==null||isNaN(n))return'—';return(n<0?'-':'')+'₹'+Math.abs(n).toFixed(2)+' Cr';}
 function pct(n){return(n*100).toFixed(1)+'%';}
-function sm(arr,f){return arr.reduce((s,r)=>s+(r[f]||0),0);}
+function sm(arr,f){return arr.reduce((s,r)=>s+(Number(r[f])||0),0);}
+function setSt(m,c){const p=document.getElementById('sp');p.textContent=m;p.className='status'+(c?' '+c:'');}
+function emptyH(i,t,s){return`<div class="empty"><div class="empty-i">${i}</div><div class="empty-t">${t}</div>${s?'<div class="empty-s">'+s+'</div>':''}</div>`;}
+function pctBar(v,color){const w=Math.min(v*100,100).toFixed(0);return`<div class="pct-bar"><div class="pct-bg"><div class="pct-fill" style="width:${w}%;background:${color}"></div></div><span style="font-family:var(--font-mono);font-size:11px">${pct(v)}</span></div>`;}
+function mkChart(id,type,data,opts){
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id),{type,data,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},...opts}});
+}
 
-// ── KPIs ───────────────────────────────────────────────────────
-function renderKPIs(){
-  const tB=sm(merged,'budget'),tA=sm(merged,'actual'),tC=sm(merged,'commit');
-  const reds=merged.filter(r=>r.rag==='R').length,ambs=merged.filter(r=>r.rag==='A').length;
+function renderAlerts(){
+  const over=merged.filter(r=>r.rag==='OVER').sort((a,b)=>b.deploy-a.deploy);
+  const red=merged.filter(r=>r.rag==='R').sort((a,b)=>b.deploy-a.deploy);
+  const amb=merged.filter(r=>r.rag==='A').sort((a,b)=>b.deploy-a.deploy);
+  const tB=sm(merged,'budget'),tA=sm(merged,'actual');
+  document.getElementById('k-over').textContent=over.length;
+  document.getElementById('k-over-s').textContent=over.length?cr(sm(over,'actual'))+' over budget':'none';
+  document.getElementById('k-red').textContent=red.length;
+  document.getElementById('k-amb').textContent=amb.length;
   document.getElementById('kb').textContent=cr(tB);
   document.getElementById('kbs').textContent=merged.length+' WBS codes';
   document.getElementById('ka').textContent=cr(tA);
   document.getElementById('kas').textContent=pct(tB>0?tA/tB:0)+' of budget spent';
-  document.getElementById('kc').textContent=cr(tC);
-  document.getElementById('kcs').textContent=pct(tB>0?(tA+tC)/tB:0)+' deployed incl. commitment';
-  document.getElementById('kr').textContent=(reds+ambs)+' WBS codes';
-  document.getElementById('krs').textContent=reds+' Red · '+ambs+' Amber';
+  function alertCards(arr,cls){
+    if(!arr.length)return emptyH('✅','None in this category','');
+    return arr.map(r=>{
+      const flagLabel=r.rag==='OVER'?'OVERRUN >100%':r.rag==='R'?'RED >95%':'AMBER';
+      return`<div class="acard ${cls}">
+        <span class="acard-flag">${flagLabel}</span>
+        <span class="acard-wbs">${r.wbs}</span>
+        <span class="acard-desc">${r.desc||'—'}</span>
+        <div class="acard-stat"><b>${pct(r.deploy)}</b>deployed</div>
+        <div class="acard-stat"><b>${cr(r.balance)}</b>balance</div>
+        <div class="acard-stat"><b>${r.pot}</b>type</div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('over-list').innerHTML=alertCards(over,'over');
+  document.getElementById('red-list').innerHTML=alertCards(red,'red');
+  document.getElementById('amb-list').innerHTML=alertCards(amb,'amb');
 }
 
-// ── ALERTS ─────────────────────────────────────────────────────
-function renderAlerts(){
-  const alerts=merged.filter(r=>r.rag!=='G').sort((a,b)=>{if(a.rag!==b.rag)return a.rag==='R'?-1:1;return b.deploy-a.deploy;});
-  const g=document.getElementById('ag');
-  if(!alerts.length){g.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-i">✅</div><div class="empty-t">All WBS codes are green</div></div>';return;}
-  g.innerHTML=alerts.map(r=>`<div class="ac ${r.rag==='R'?'red':'amb'}">
-    <div class="ac-w">${r.wbs}</div>
-    <div class="ac-d">${r.desc||'—'}</div>
-    <div class="ac-ns">
-      <div class="ac-n">Deployed <b>${pct(r.deploy)}</b></div>
-      <div class="ac-n">Balance <b>${cr(r.balance)}</b></div>
-      <div class="ac-n">Type <b>${r.pot}</b></div>
-    </div>
-    <div class="pbar-w"><div class="pbar" style="width:${Math.min(r.deploy*100,100).toFixed(0)}%;background:${r.rag==='R'?'#E24B4A':'#BA7517'}"></div></div>
-  </div>`).join('');
-}
-
-// ── CHART ──────────────────────────────────────────────────────
-function renderChart(){
-  const pg={};
-  merged.forEach(r=>{if(r.pot==='—'||r.pot==='UNKNOWN')return;if(!pg[r.pot])pg[r.pot]={b:0,a:0,c:0};pg[r.pot].b+=r.budget;pg[r.pot].a+=r.actual;pg[r.pot].c+=r.commit;});
-  const pots=Object.keys(pg).sort((a,b)=>pg[b].b-pg[a].b).slice(0,10);
-  if(chartI)chartI.destroy();
-  chartI=new Chart(document.getElementById('cc'),{
-    type:'bar',
-    data:{labels:pots,datasets:[
-      {label:'Budget',data:pots.map(p=>+pg[p].b.toFixed(2)),backgroundColor:'#B5D4F4',borderWidth:0},
-      {label:'Actual',data:pots.map(p=>+pg[p].a.toFixed(2)),backgroundColor:'#378ADD',borderWidth:0},
-      {label:'Commitment',data:pots.map(p=>+pg[p].c.toFixed(2)),backgroundColor:'#F0997B',borderWidth:0},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10},callback:v=>'₹'+v.toFixed(0)+'Cr'},grid:{color:'rgba(128,128,128,0.1)'}}}}
+function renderFlow(){
+  const selMonth=document.getElementById('flow-month').value;
+  const selPOT=document.getElementById('flow-pot').value;
+  let rows=monthlyRows;
+  if(selMonth)rows=rows.filter(r=>r.month===selMonth);
+  const byPOT={};
+  rows.forEach(r=>{
+    const wbsRow=merged.find(m=>m.wbsKey===r.wbs_key);
+    const pot=r.pot||(wbsRow?wbsRow.pot:'OTHER');
+    byPOT[pot]=(byPOT[pot]||0)+Number(r.amount);
   });
+  const potsSorted=Object.keys(byPOT).filter(p=>byPOT[p]>0).sort((a,b)=>byPOT[b]-byPOT[a]).slice(0,12);
+  const COLORS=['#c0392b','#e67e22','#f39c12','#2e86c1','#1abc9c','#8e44ad','#27ae60','#2980b9','#d35400','#16a085','#7f8c8d','#2c3e50'];
+  mkChart('chart-pot','bar',{
+    labels:potsSorted,
+    datasets:[{data:potsSorted.map(p=>+byPOT[p].toFixed(2)),backgroundColor:COLORS,borderWidth:0}]
+  },{scales:{x:{ticks:{font:{size:9}},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>'₹'+v.toFixed(0)+'Cr'},grid:{color:'rgba(0,0,0,0.05)'}}}});
+  const byMonth={};
+  monthlyRows.forEach(r=>{
+    if(selPOT){const wbsRow=merged.find(m=>m.wbsKey===r.wbs_key);const pot=r.pot||(wbsRow?wbsRow.pot:'OTHER');if(pot!==selPOT)return;}
+    byMonth[r.month]=(byMonth[r.month]||0)+Number(r.amount);
+  });
+  const mSorted=Object.keys(byMonth).sort().slice(-18);
+  mkChart('chart-trend','line',{
+    labels:mSorted,
+    datasets:[{data:mSorted.map(m=>+byMonth[m].toFixed(2)),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,0.08)',tension:.3,pointRadius:3,fill:true,borderWidth:1.5}]
+  },{scales:{x:{ticks:{font:{size:9},maxRotation:45},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>'₹'+v.toFixed(0)+'Cr'},grid:{color:'rgba(0,0,0,0.05)'}}}});
+  let flowRows=monthlyRows;
+  if(selMonth)flowRows=flowRows.filter(r=>r.month===selMonth);
+  flowRows=flowRows.filter(r=>Math.abs(Number(r.amount))>0);
+  if(selPOT)flowRows=flowRows.filter(r=>{
+    const wbsRow=merged.find(m=>m.wbsKey===r.wbs_key);
+    const pot=r.pot||(wbsRow?wbsRow.pot:'OTHER');
+    return pot===selPOT;
+  });
+  flowRows.sort((a,b)=>Math.abs(Number(b.amount))-Math.abs(Number(a.amount)));
+  const wbsMap={};merged.forEach(r=>wbsMap[r.wbsKey]=r);
+  document.getElementById('flow-body').innerHTML=flowRows.slice(0,500).map(r=>{
+    const wbs=wbsMap[r.wbs_key];
+    const pot=r.pot||(wbs?wbs.pot:'OTHER');
+    return`<tr>
+      <td class="mono">${r.month}</td>
+      <td><span class="badge ${pot.toLowerCase().substring(0,4)}" style="background:var(--paper2);color:var(--ink2)">${pot}</span></td>
+      <td class="mono">${r.wbs_key}</td>
+      <td>${wbs?wbs.desc:'—'}</td>
+      <td class="${Number(r.amount)>=0?'pos':'neg'}">${cr(Number(r.amount))}</td>
+    </tr>`;
+  }).join('');
 }
 
-// ── FORECAST ───────────────────────────────────────────────────
-function renderForecast(){
-  const rR=recurring.filter(r=>r.recur==='REC'),sR=recurring.filter(r=>r.recur==='SEMI');
+function renderLocked(){
+  const selPOT=document.getElementById('low-pot').value;
+  const locked=merged.filter(r=>r.actpct<0.3&&r.commit>0&&r.budget>0.1).sort((a,b)=>b.commit-a.commit);
+  document.getElementById('k-locked-n').textContent=locked.length;
+  document.getElementById('k-locked-v').textContent=cr(sm(locked,'commit'));
+  document.getElementById('locked-grid').innerHTML=locked.slice(0,20).map(r=>`<div class="locked-card">
+    <div class="locked-wbs">${r.wbs}</div>
+    <div class="locked-desc">${r.desc||'—'}</div>
+    <div class="locked-stats">
+      <div class="locked-stat">Commit <b>${cr(r.commit)}</b></div>
+      <div class="locked-stat">Actual <b>${pct(r.actpct)}</b></div>
+      <div class="locked-stat">Type <b>${r.pot}</b></div>
+    </div>
+  </div>`).join('') || emptyH('✅','No locked budget detected','');
+  let low=merged.filter(r=>r.actpct*100<lowThreshold&&r.budget>0.05);
+  if(selPOT)low=low.filter(r=>r.pot===selPOT);
+  low.sort((a,b)=>{let va=a[lowSortCol],vb=b[lowSortCol];if(va<vb)return -lowSortDir;if(va>vb)return lowSortDir;return 0;});
+  document.getElementById('k-low-n').textContent=low.length;
+  document.getElementById('low-count').textContent=low.length+' rows';
+  document.getElementById('low-body').innerHTML=low.map(r=>`<tr class="low-row">
+    <td class="mono">${r.wbs}</td><td>${r.desc||'—'}</td><td>${r.pot}</td>
+    <td class="nr">${cr(r.budget)}</td>
+    <td class="nr">${cr(r.actual)}</td>
+    <td>${pctBar(r.actpct,'#2e86c1')}</td>
+    <td class="nr">${cr(r.commit)}</td>
+    <td class="pos">${cr(r.balance)}</td>
+  </tr>`).join('') || '<tr><td colspan="8">'+emptyH('✅','No low-utilisation WBS codes','')+'</td></tr>';
+}
+
+function renderRecurring(){
+  const selPOT=document.getElementById('rec-pot').value;
+  const selPat=document.getElementById('rec-pat').value;
+  let rows=[...recurring];
+  if(selPOT)rows=rows.filter(r=>r.pot===selPOT);
+  if(selPat)rows=rows.filter(r=>r.recur===selPat);
+  const rR=rows.filter(r=>r.recur==='REC'),sR=rows.filter(r=>r.recur==='SEMI');
   document.getElementById('frc').textContent=rR.length;
   document.getElementById('frt').textContent=cr(sm(rR,'actual'))+' total to date';
   document.getElementById('fsc').textContent=sR.length;
   document.getElementById('fst').textContent=cr(sm(sR,'actual'))+' total to date';
-  document.getElementById('fm').textContent=cr(sm(recurring,'avgMonthly'));
+  const monthly=sm(rows,'avgMonthly');
+  document.getElementById('fm').textContent=cr(monthly);
+  document.getElementById('f3m').textContent=cr(monthly*3);
+  document.getElementById('rec-count').textContent=rows.length+' lines';
   const now=new Date();
   const months=[1,2,3].map(i=>{const d=new Date(now.getFullYear(),now.getMonth()+i,1);return d.toLocaleString('default',{month:'short',year:'numeric'});});
   document.getElementById('fh1').textContent=months[0];
   document.getElementById('fh2').textContent=months[1];
   document.getElementById('fh3').textContent=months[2];
   document.getElementById('fh').textContent=months.join(' · ');
-  const body=document.getElementById('ftb');
-  if(!recurring.length){body.innerHTML='<tr><td colspan="8"><div class="empty"><div class="empty-i">📅</div><div class="empty-t">No recurring patterns detected</div><div class="empty-s">Need cost data with multiple months of postings</div></div></td></tr>';return;}
+  const byPOT={};
+  rows.forEach(r=>{byPOT[r.pot]=(byPOT[r.pot]||0)+r.avgMonthly;});
+  const pots=Object.keys(byPOT).sort((a,b)=>byPOT[b]-byPOT[a]);
+  mkChart('chart-rec-pot','bar',{
+    labels:pots,
+    datasets:[{data:pots.map(p=>+byPOT[p].toFixed(2)),backgroundColor:'#c0392b',borderWidth:0}]
+  },{scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>'₹'+v.toFixed(1)+'Cr'},grid:{color:'rgba(0,0,0,0.05)'}}}});
   const j=v=>v*(0.94+Math.random()*.12);
-  const rows=recurring.map(r=>`<tr>
-    <td class="mn">${r.wbs}</td><td>${r.desc||'—'}</td><td>${r.pot}</td>
-    <td><span class="b ${r.recur.toLowerCase()}">${r.recur}</span></td>
+  if(!rows.length){
+    document.getElementById('rec-body').innerHTML='<tr><td colspan="8">'+emptyH('📅','No recurring patterns detected','Need cost data with 4+ months of postings per WBS code')+'</td></tr>';
+    return;
+  }
+  const tbody=rows.map(r=>`<tr>
+    <td class="mono">${r.wbs}</td><td>${r.desc||'—'}</td><td>${r.pot}</td>
+    <td><span class="badge ${r.recur.toLowerCase()}">${r.recur}</span></td>
     <td class="nr">${cr(r.avgMonthly)}</td>
     <td class="nr">${cr(j(r.avgMonthly))}</td>
     <td class="nr">${cr(j(r.avgMonthly))}</td>
     <td class="nr">${cr(j(r.avgMonthly))}</td>
   </tr>`);
-  const tot=sm(recurring,'avgMonthly');
-  rows.push(`<tr class="ft"><td colspan="4" style="text-align:right;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Total projected</td><td class="nr">${cr(tot)}</td><td class="nr">${cr(tot*.99)}</td><td class="nr">${cr(tot*1.01)}</td><td class="nr">${cr(tot)}</td></tr>`);
-  body.innerHTML=rows.join('');
-}
-
-// ── WBS TABLE ──────────────────────────────────────────────────
-function populateFilters(){
-  const suffs=[...new Set(merged.map(r=>{const p=r.wbs.split('.');return p.length>1?p.slice(1).join('.'):'';}).filter(Boolean))].sort();
-  document.getElementById('fw').innerHTML='<option value="">All</option>'+suffs.map(s=>`<option>${s}</option>`).join('');
-  const pots=[...new Set(merged.map(r=>r.pot).filter(p=>p!=='—'&&p!=='UNKNOWN'))].sort();
-  document.getElementById('fp').innerHTML='<option value="">All</option>'+pots.map(p=>`<option>${p}</option>`).join('');
+  const tot=sm(rows,'avgMonthly');
+  tbody.push(`<tr style="background:var(--paper2);font-weight:500"><td colspan="4" style="text-align:right;font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em">Total projected</td><td class="nr">${cr(tot)}</td><td class="nr">${cr(tot*.99)}</td><td class="nr">${cr(tot*1.01)}</td><td class="nr">${cr(tot)}</td></tr>`);
+  document.getElementById('rec-body').innerHTML=tbody.join('');
 }
 
 function renderWBS(){
-  const wf=document.getElementById('fw').value,pf=document.getElementById('fp').value,
-        rf=document.getElementById('fr').value,ref=document.getElementById('fre').value;
+  const wf=document.getElementById('w-sfx').value;
+  const pf=document.getElementById('w-pot').value;
+  const rf=document.getElementById('w-rag').value;
+  const ref=document.getElementById('w-rec').value;
   let rows=[...merged];
   if(wf)rows=rows.filter(r=>r.wbs.includes(wf));
   if(pf)rows=rows.filter(r=>r.pot===pf);
   if(rf)rows=rows.filter(r=>r.rag===rf);
   if(ref)rows=rows.filter(r=>r.recur===ref);
-  rows.sort((a,b)=>{let va=a[sCol],vb=b[sCol];if(va<vb)return -sDir;if(va>vb)return sDir;return 0;});
-  document.getElementById('rc2').textContent=rows.length.toLocaleString()+' rows';
-  const body=document.getElementById('wbt');
-  if(!rows.length){body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text2)">No rows match current filters</td></tr>';return;}
-  body.innerHTML=rows.map(r=>`<tr>
-    <td class="mn">${r.wbs}</td><td>${r.desc||'—'}</td><td>${r.pot}</td>
-    <td class="nr">${cr(r.budget)}</td><td class="nr">${cr(r.actual)}</td><td class="nr">${pct(r.actpct)}</td>
-    <td class="nr">${cr(r.commit)}</td><td class="nr">${pct(r.deploy)}</td>
-    <td class="${r.balance<0?'neg':'pos'}">${cr(r.balance)}</td>
-    <td>${r.recur!=='-'?`<span class="b ${r.recur.toLowerCase()}">${r.recur}</span>`:'<span style="color:var(--text3)">—</span>'}</td>
-    <td><span class="rag ${r.rag}">${r.rag}</span></td>
-  </tr>`).join('');
+  if(actFilter==='low')rows=rows.filter(r=>r.actpct<0.3);
+  rows.sort((a,b)=>{let va=a[wbsSortCol],vb=b[wbsSortCol];if(va<vb)return -wbsSortDir;if(va>vb)return wbsSortDir;return 0;});
+  document.getElementById('w-count').textContent=rows.length.toLocaleString()+' rows';
+  const ragColors={'OVER':'#c0392b','R':'#c0392b','A':'#b5620a','G':'#2e6b3e'};
+  document.getElementById('wbs-body').innerHTML=rows.map(r=>{
+    const rowCls=r.rag==='OVER'?'over-row':r.actpct<0.3&&r.budget>0.05?'low-row':'';
+    return`<tr class="${rowCls}">
+      <td class="mono">${r.wbs}</td>
+      <td>${r.desc||'—'}</td>
+      <td>${r.pot}</td>
+      <td class="nr">${cr(r.budget)}</td>
+      <td class="nr">${cr(r.actual)}</td>
+      <td>${pctBar(r.actpct,ragColors[r.rag]||'#888')}</td>
+      <td class="nr">${cr(r.commit)}</td>
+      <td>${pctBar(r.deploy,ragColors[r.rag]||'#888')}</td>
+      <td class="${r.balance<0?'neg':'pos'}">${cr(r.balance)}</td>
+      <td>${r.recur!=='-'?`<span class="badge ${r.recur.toLowerCase()}">${r.recur}</span>`:'<span style="color:var(--ink3)">—</span>'}</td>
+      <td><span class="rag ${r.rag}">${r.rag}</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--ink3)">No rows match filters</td></tr>';
 }
 
+function populateSelects(){
+  const months=allMonths;
+  const pots=allPOTs;
+  const suffixes=[...new Set(merged.map(r=>{const p=r.wbs.split('.');return p.length>1?p.slice(1).join('.'):'';}).filter(Boolean))].sort();
+  function setOpts(id,vals,label='All'){
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML=`<option value="">${label}</option>`+vals.map(v=>`<option>${v}</option>`).join('');
+  }
+  setOpts('flow-month',months,'All months');
+  setOpts('flow-pot',pots,'All types');
+  setOpts('low-pot',pots,'All types');
+  setOpts('rec-pot',pots,'All types');
+  setOpts('w-sfx',suffixes,'All');
+  setOpts('w-pot',pots,'All');
+}
+
+function updateNavBadges(){
+  const alerts=merged.filter(r=>r.rag==='OVER'||r.rag==='R').length;
+  const amb=merged.filter(r=>r.rag==='A').length;
+  const locked=merged.filter(r=>r.actpct<0.3&&r.commit>0&&r.budget>0.1).length;
+  document.getElementById('nb-alert').textContent=(alerts+amb)||'0';
+  document.getElementById('nb-locked').textContent=locked||'0';
+}
+
+function setLowFilter(v){
+  lowThreshold=v;
+  ['lt10-tag','lt20-tag','lt30-tag'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  document.getElementById('lt'+v+'-tag').classList.add('on');
+  renderLocked();
+}
+function setActFilter(v){
+  actFilter=v;
+  ['tag-all','tag-low'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  document.getElementById('tag-'+v).classList.add('on');
+  renderWBS();
+}
+
+['flow-month','flow-pot'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFlow));
+['low-pot'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLocked));
+['rec-pot','rec-pat'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderRecurring));
+['w-sfx','w-pot','w-rag','w-rec'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderWBS));
+
 document.querySelectorAll('[data-col]').forEach(th=>{
-  th.addEventListener('click',()=>{const c=th.dataset.col;if(sCol===c)sDir*=-1;else{sCol=c;sDir=1;}renderWBS();});
+  th.addEventListener('click',()=>{
+    const c=th.dataset.col;
+    const tbl=th.closest('table').id;
+    if(tbl==='flow-table')return;
+    if(th.closest('#pg-locked')){if(lowSortCol===c)lowSortDir*=-1;else{lowSortCol=c;lowSortDir=1;}renderLocked();}
+    else{if(wbsSortCol===c)wbsSortDir*=-1;else{wbsSortCol=c;wbsSortDir=1;}renderWBS();}
+  });
 });
-['fw','fp','fr','fre'].forEach(id=>document.getElementById(id).addEventListener('change',renderWBS));
+
+let bvaFile=null,costFile=null;
+function setupDrop(dropId,inputId,which){
+  const drop=document.getElementById(dropId);
+  const inp=document.getElementById(inputId);
+  function setFile(f){
+    if(which==='bva')bvaFile=f;else costFile=f;
+    drop.classList.add('done');
+    drop.querySelector('.drop-t').textContent='✓ '+f.name;
+    drop.querySelector('.drop-s').textContent=(f.size/1024).toFixed(0)+' KB';
+    checkReady();
+  }
+  inp.addEventListener('change',e=>{if(e.target.files[0])setFile(e.target.files[0]);});
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+  drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+  drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])setFile(e.dataTransfer.files[0]);});
+}
+setupDrop('drop-bva','inp-bva','bva');
+setupDrop('drop-cost','inp-cost','cost');
+document.getElementById('up-key').addEventListener('input',checkReady);
+
+function checkReady(){
+  const key=document.getElementById('up-key').value.trim();
+  document.getElementById('up-btn').disabled=!(key&&bvaFile&&costFile&&CONFIGURED);
+}
+
+function ulog(msg,cls='info'){
+  const el=document.getElementById('up-log');
+  el.innerHTML+=`<div class="${cls}">${msg}</div>`;el.scrollTop=el.scrollHeight;
+}
+
+async function doUpload(){
+  const key=document.getElementById('up-key').value.trim();
+  if(key!==UPLOAD_SECRET){ulog('❌ Wrong upload key','err');return;}
+  const label=document.getElementById('up-label').value.trim()||'Upload '+new Date().toLocaleDateString('en-IN');
+  document.getElementById('up-btn').disabled=true;
+  document.getElementById('up-log').innerHTML='';
+  ulog('Reading files…');
+  try{
+    const [bvaRows,costResult]=await Promise.all([parseBVA(bvaFile),parseCost(costFile)]);
+    ulog(`✓ BVA: ${bvaRows.length} WBS rows`,'ok');
+    ulog(`✓ Cost data: ${costResult.validRows} rows, ${Object.keys(costResult.monthlyMap).length} WBS codes`,'ok');
+    ulog('Saving to Supabase…');
+    const upRes=await sb('uploads?select=id',{method:'POST',prefer:'return=representation',body:{label,bva_rows:bvaRows.length,cost_rows:costResult.validRows}});
+    const uploadId=upRes[0].id;
+    ulog('✓ Upload record created','ok');
+    const snapRows=bvaRows.map(r=>({upload_id:uploadId,wbs:r.wbs,wbs_key:r.wbsKey,description:r.desc,budget:r.budget,bva_actual:r.bvaActual,commitment:r.commit,pot:r.pot||null}));
+    for(let i=0;i<snapRows.length;i+=200)await sb('wbs_snapshot',{method:'POST',body:snapRows.slice(i,i+200)});
+    ulog(`✓ WBS snapshot saved (${snapRows.length} rows)`,'ok');
+    const monthRows=[];
+    Object.keys(costResult.monthlyMap).forEach(wk=>{
+      Object.keys(costResult.monthlyMap[wk]).forEach(month=>{
+        monthRows.push({wbs_key:wk,month,amount:costResult.monthlyMap[wk][month].amount,pot:costResult.monthlyMap[wk][month].pot||null});
+      });
+    });
+    for(let i=0;i<monthRows.length;i+=200)await sb('monthly_spend',{method:'POST',prefer:'resolution=merge-duplicates',body:monthRows.slice(i,i+200)});
+    ulog(`✓ Monthly spend saved (${monthRows.length} entries)`,'ok');
+    ulog('🎉 Done! Refreshing…','ok');
+    setTimeout(()=>loadData(),600);
+  }catch(e){
+    ulog('❌ '+e.message,'err');console.error(e);
+    document.getElementById('up-btn').disabled=false;
+  }
+}
+
+function readXL(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(XLSX.read(e.target.result,{type:'array',cellDates:true,raw:true}));
+    r.onerror=rej;r.readAsArrayBuffer(file);
+  });
+}
+
+async function parseBVA(file){
+  const wb=await readXL(file);
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null,raw:true,cellDates:true});
+  function pn(v){if(v==null)return 0;if(typeof v==='number')return v;return parseFloat(String(v).replace(/,/g,''))||0;}
+  const out=[];
+  for(let i=15;i<rows.length;i++){
+    const row=rows[i];if(!row)continue;
+    let wbs=null,wc=-1;
+    for(let c=2;c<=8;c++){if(row[c]&&String(row[c]).trim().startsWith('WBS BLR-')){wbs=String(row[c]).trim().replace(/^WBS\s+/,'');wc=c;break;}}
+    if(!wbs)continue;
+    let desc='';
+    for(let c=wc+1;c<=wc+5&&c<row.length;c++){if(row[c]&&String(row[c]).trim()){desc=String(row[c]).trim();break;}}
+    out.push({wbs,wbsKey:wbs.replace(/[-\.]/g,'').toUpperCase(),desc,budget:pn(row[12])/1e7,bvaActual:pn(row[13])/1e7,commit:pn(row[14])/1e7,pot:null});
+  }
+  return out;
+}
+
+async function parseCost(file){
+  const wb=await readXL(file);
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null,raw:true,cellDates:true});
+  for(let i=2;i<rows.length;i++){
+    const row=rows[i];if(!row)continue;
+    const p=String(row[30]||''),co=String(row[6]||'');
+    if(p&&!p.includes('VLOOKUP')&&p!=='None'&&co&&!CO_POT[co])CO_POT[co]=p.trim();
+  }
+  const monthlyMap={};let validRows=0;
+  for(let i=2;i<rows.length;i++){
+    const row=rows[i];if(!row)continue;
+    const wbsRaw=String(row[4]||'').trim();
+    if(!wbsRaw||wbsRaw==='null')continue;
+    const rawAmt=row[8];
+    const amt=typeof rawAmt==='number'?rawAmt:parseFloat(String(rawAmt||'').replace(/,/g,''));
+    if(isNaN(amt)||amt===0)continue;
+    const drcr=String(row[25]||'');
+    const signed=(drcr==='D'?amt:drcr==='C'?-amt:amt)/1e7;
+    const pot=derivePOT(wbsRaw,String(row[6]||''),String(row[30]||''));
+    const wbsKey=wbsRaw.replace(/[-\.]/g,'').toUpperCase();
+    let month=null;
+    const rd=row[1];
+    if(rd instanceof Date&&!isNaN(rd)){
+      month=rd.getFullYear()+'-'+String(rd.getMonth()+1).padStart(2,'0');
+    } else if(typeof rd==='number'&&rd>40000){
+      const d=new Date(Math.round((rd-25569)*86400*1000));
+      if(!isNaN(d))month=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    } else if(typeof rd==='string'){
+      const ds=rd.trim();
+      if(/^\d{2}[-./]\d{2}[-./]\d{4}$/.test(ds))month=ds.slice(6,10)+'-'+ds.slice(3,5);
+      else if(/^\d{4}-\d{2}/.test(ds))month=ds.slice(0,7);
+    }
+    if(!month)continue;
+    if(!monthlyMap[wbsKey])monthlyMap[wbsKey]={};
+    if(!monthlyMap[wbsKey][month])monthlyMap[wbsKey][month]={amount:0,pot};
+    monthlyMap[wbsKey][month].amount+=signed;
+    validRows++;
+  }
+  return{validRows,monthlyMap};
+}
+
+async function loadHistory(){
+  if(!CONFIGURED){document.getElementById('hist-list').innerHTML='<div style="font-size:12px;color:var(--ink3)">Configure Supabase first.</div>';return;}
+  try{
+    const ups=await sb('uploads?select=*&order=uploaded_at.desc&limit=15',{headers:{'Accept':'application/json'}});
+    if(!ups?.length){document.getElementById('hist-list').innerHTML='<div style="font-size:12px;color:var(--ink3)">No uploads yet.</div>';return;}
+    document.getElementById('hist-list').innerHTML=ups.map(u=>{
+      const d=new Date(u.uploaded_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+      return`<div class="hist-row">
+        <div><div class="hist-label">${u.label||'Unnamed upload'}</div><div class="hist-meta">${u.bva_rows||0} WBS · ${u.cost_rows||0} cost rows</div></div>
+        <div class="hist-date">${d}</div>
+      </div>`;
+    }).join('');
+  }catch(e){console.error(e);}
+}
+
+loadData();
+loadHistory();
 </script>
 </body>
 </html>
