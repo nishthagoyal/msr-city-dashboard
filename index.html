@@ -200,7 +200,7 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
   ⚠ Supabase not configured — dashboard is in demo mode.
   <a onclick="switchNav('upload')">Complete setup in Upload tab →</a>
 </div>
-<button id="back-to-top" onclick="document.querySelector('.content').scrollTo({top:0,behavior:'smooth'})" style="display:none;position:fixed;bottom:24px;right:24px;z-index:999;background:var(--ink);color:var(--paper);border:none;border-radius:20px;padding:7px 14px;font-size:11px;font-family:var(--font-body);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);opacity:.85">↑ Top</button>
+<button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="display:none;position:fixed;bottom:24px;right:24px;z-index:999;background:var(--ink);color:var(--paper);border:none;border-radius:20px;padding:7px 14px;font-size:11px;font-family:var(--font-body);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);opacity:.85">↑ Top</button>
 
 <div class="shell">
   <!-- TOP BAR -->
@@ -306,6 +306,8 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <select class="mf-sel" id="flow-month"><option value="">All months</option></select>
         <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Cost Type</label>
         <select class="mf-sel" id="flow-pot"><option value="">All types</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Tower</label>
+        <select class="mf-sel" id="flow-tower"><option value="">All towers</option></select>
       </div>
 
       <div class="flow-grid">
@@ -370,6 +372,8 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <div class="mf-tag" id="lt10-tag" onclick="setLowFilter(10)">Under 10%</div>
         <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:4px">Cost Type</label>
         <select class="mf-sel" id="low-pot"><option value="">All types</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:4px">Tower</label>
+        <select class="mf-sel" id="low-tower"><option value="">All towers</option></select>
         <div class="mf-spacer"></div>
         <span class="mf-count" id="low-count">—</span>
       </div>
@@ -448,6 +452,8 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <select class="mf-sel" id="w-rec">
           <option value="">All</option><option value="REC">REC</option><option value="SEMI">SEMI</option>
         </select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Tower</label>
+        <select class="mf-sel" id="w-tower"><option value="">All towers</option></select>
         <div class="mf-tag on" id="tag-all" onclick="setActFilter('all')">All</div>
         <div class="mf-tag" id="tag-low" onclick="setActFilter('low')">Low util &lt;30%</div>
         <div class="mf-spacer"></div>
@@ -579,7 +585,7 @@ if(!CONFIGURED){
 }
 
 // ── STATE ──────────────────────────────────────────
-let merged=[], recurring=[], monthlyRows=[], allMonths=[], allPOTs=[];
+let merged=[], recurring=[], monthlyRows=[], allMonths=[], allPOTs=[], allTowers=[];
 let charts={};
 let lowThreshold=30, actFilter='all';
 let wbsSortCol='rag', wbsSortDir=1;
@@ -633,15 +639,46 @@ async function loadData(){
 // Global wbsMap accessible by all render functions
 let wbsMap={};
 
-// Derive POT from WBS code string - always reliable
+// Derive POT from WBS code string - handles dotted and stripped keys
 function potFromWbs(code){
   if(!code)return'OTHER';
-  const segs=code.split('.');
-  for(let i=segs.length-1;i>=0;i--){
-    const s=segs[i].replace(/\d+$/,'');
-    if(SEG_POT[s])return SEG_POT[s];
+  // Handle dotted format (original WBS like BLR-GDR001.SB.FD.CN)
+  if(code.includes('.')){
+    const segs=code.split('.');
+    for(let i=segs.length-1;i>=0;i--){
+      const s=segs[i].replace(/\d+$/,'');
+      if(s.length>=2&&SEG_POT[s])return SEG_POT[s];
+    }
   }
+  // Handle stripped keys like BLRGDRCM0LN01, BLRGDR007SD, GDR001SBFDCN
+  // Strip known prefixes and tower number
+  let stripped=code.replace(/^(BLRGDR|BLR|GDR)/,'').replace(/^\d{3}/,'');
+  // Scan right to left for 2-letter alpha segments
+  for(let i=stripped.length-2;i>=0;i--){
+    const s=stripped.slice(i,i+2).replace(/\d/g,'');
+    if(s.length===2&&SEG_POT[s])return SEG_POT[s];
+  }
+  // Fallback: last 2 uppercase letters in code
+  const m=code.match(/([A-Z]{2})\d*$/);
+  if(m&&SEG_POT[m[1]])return SEG_POT[m[1]];
   return'OTHER';
+}
+
+// Generate human-readable description from a stripped WBS key
+function descFromKey(key){
+  if(!key)return'';
+  const POT_LABELS={
+    CONST:'Construction',CC:'Coordination',INFRA:'Infrastructure',
+    SITEOH:'Site Overhead',BROKER:'Brokerage',CONSUL:'Consultancy',
+    Prelims:'Preliminaries',LIASO:'Liaison',LAND:'Land',Legal:'Legal',
+    MKTNG:'Marketing',FINAN:'Finance',REGOH:'Regional Overhead',
+    PMC:'PMC',COC:'COC','DM Fees':'DM Fees',OTHER:'Other'
+  };
+  const pot=potFromWbs(key);
+  const label=POT_LABELS[pot]||pot;
+  // Try to extract tower
+  const tm=key.match(/GDR(\d{3})/);
+  return tm?label+' – GDR'+tm[1]:label+' (Project)';
 }
 
 function processData(wbsRows,mRows){
@@ -705,9 +742,26 @@ function processData(wbsRows,mRows){
   merged.forEach(r=>wbsMap[r.wbsKey]=r);
   mRows.forEach(r=>{r._pot=(wbsMap[r._wk]?wbsMap[r._wk].pot:potFromWbs(r._wk));});
 
+  // Add project-level actuals (monthly rows with no matching snapshot entry) to total
+  // These are costs like BLRGDRCM0FI that don't belong to a specific tower WBS
+  window._projectActuals=0;
+  window._projectActualsByPOT={};
+  mRows.forEach(r=>{
+    if(!wbsMap[r._wk]&&r._wk&&r._mo){
+      window._projectActuals+=r._amt;
+      const p=r._pot||'OTHER';
+      window._projectActualsByPOT[p]=(window._projectActualsByPOT[p]||0)+r._amt;
+    }
+  });
+
   recurring=merged.filter(r=>r.recur==='REC'||r.recur==='SEMI').sort((a,b)=>Math.abs(b.avgMonthly)-Math.abs(a.avgMonthly));
   allMonths=[...new Set(mRows.map(r=>r._mo).filter(Boolean))].sort();
   allPOTs=[...new Set(merged.map(r=>r.pot).filter(p=>p&&p!=='OTHER'))].sort();
+  // Extract towers from WBS codes e.g. BLR-GDR001 -> GDR001
+  allTowers=[...new Set(merged.map(r=>{
+    const m=(r.wbs||r.wbsKey||'').match(/GDR(\d{3})/);
+    return m?'GDR'+m[1]:null;
+  }).filter(Boolean))].sort();
 
   populateSelects();
   renderAll();
@@ -754,8 +808,9 @@ function renderAlerts(){
   document.getElementById('k-amb').textContent=amb.length;
   document.getElementById('kb').textContent=cr(tB);
   document.getElementById('kbs').textContent=merged.length+' WBS codes';
-  document.getElementById('ka').textContent=cr(tA);
-  document.getElementById('kas').textContent=pct(tB>0?tA/tB:0)+' of budget spent';
+  const totalActual=tA+(window._projectActuals||0);
+  document.getElementById('ka').textContent=cr(totalActual);
+  document.getElementById('kas').textContent=pct(tB>0?totalActual/tB:0)+' of budget spent';
 
   // Make KPI cards clickable — scroll to the relevant section
   document.getElementById('k-over').closest('.kcard').style.cursor='pointer';
@@ -788,8 +843,11 @@ function renderFlow(){
   const selMonth=document.getElementById('flow-month').value;
   const selPOT=document.getElementById('flow-pot').value;
   // Use _pot enriched in processData (derived from WBS code via SEG_POT map)
+  const selTower=document.getElementById('flow-tower').value;
+  function towerOf(wk){const m=(wk||'').match(/GDR(\d{3})/);return m?'GDR'+m[1]:null;}
   let chartRows=monthlyRows;
   if(selMonth)chartRows=chartRows.filter(r=>r._mo===selMonth);
+  if(selTower)chartRows=chartRows.filter(r=>towerOf(r._wk)===selTower);
   const byPOT={};
   chartRows.forEach(r=>{const pot=r._pot||'OTHER';byPOT[pot]=(byPOT[pot]||0)+r._amt;});
   const potsSorted=Object.keys(byPOT).filter(p=>byPOT[p]>0).sort((a,b)=>byPOT[b]-byPOT[a]).slice(0,12);
@@ -801,6 +859,7 @@ function renderFlow(){
   const byMonth={};
   monthlyRows.forEach(r=>{
     if(selPOT&&(r._pot||'OTHER')!==selPOT)return;
+    if(selTower&&towerOf(r._wk)!==selTower)return;
     byMonth[r._mo]=(byMonth[r._mo]||0)+r._amt;
   });
   const mSorted=Object.keys(byMonth).sort().slice(-18);
@@ -811,6 +870,7 @@ function renderFlow(){
   let flowRows=monthlyRows;
   if(selMonth)flowRows=flowRows.filter(r=>r._mo===selMonth);
   if(selPOT)flowRows=flowRows.filter(r=>(r._pot||'OTHER')===selPOT);
+  if(selTower)flowRows=flowRows.filter(r=>towerOf(r._wk)===selTower);
   flowRows=flowRows.filter(r=>Math.abs(r._amt)>0);
   flowRows.sort((a,b)=>Math.abs(Number(b.amount))-Math.abs(Number(a.amount)));
   document.getElementById('flow-body').innerHTML=flowRows.slice(0,500).map(r=>{
@@ -820,7 +880,7 @@ function renderFlow(){
       <td class="mono">${r._mo}</td>
       <td><span style="font-size:10px;padding:2px 7px;border-radius:3px;background:var(--paper2);color:var(--ink2);font-family:var(--font-mono)">${pot}</span></td>
       <td class="mono">${r._wk}</td>
-      <td>${w?w.desc:'—'}</td>
+      <td>${w?w.desc:descFromKey(r._wk)}</td>
       <td class="${r._amt>=0?'pos':'neg'}">${cr(r._amt)}</td>
     </tr>`;
   }).join('');
@@ -829,7 +889,9 @@ function renderFlow(){
 function renderLocked(){
   const selPOT=document.getElementById('low-pot').value;
   // Leaf-only for locked cards and low util (parent codes are just summaries)
-  const locked=merged.filter(r=>r.isLeaf&&r.actpct<0.3&&r.commit>0&&r.budget>0.1).sort((a,b)=>b.commit-a.commit);
+  const selTowerL=document.getElementById('low-tower').value;
+  function towerOf(wk){const m=(wk||'').match(/GDR(\d{3})/);return m?'GDR'+m[1]:null;}
+  const locked=merged.filter(r=>r.isLeaf&&r.actpct<0.3&&r.commit>0&&r.budget>0.1&&(!selTowerL||towerOf(r.wbsKey)===selTowerL)).sort((a,b)=>b.commit-a.commit);
   document.getElementById('k-locked-n').textContent=locked.length;
   document.getElementById('k-locked-v').textContent=cr(sm(locked,'commit'));
   document.getElementById('locked-grid').innerHTML=locked.slice(0,20).map(r=>`<div class="locked-card">
@@ -843,6 +905,7 @@ function renderLocked(){
   </div>`).join('') || emptyH('\u2705','No locked budget detected','');
   let low=merged.filter(r=>r.isLeaf&&r.actpct*100<lowThreshold&&r.budget>0.05);
   if(selPOT)low=low.filter(r=>r.pot===selPOT);
+  if(selTowerL)low=low.filter(r=>towerOf(r.wbsKey)===selTowerL);
   low.sort((a,b)=>{let va=a[lowSortCol],vb=b[lowSortCol];if(va<vb)return -lowSortDir;if(va>vb)return lowSortDir;return 0;});
   document.getElementById('k-low-n').textContent=low.length;
   document.getElementById('low-count').textContent=low.length+' rows';
@@ -912,7 +975,10 @@ function renderWBS(){
   if(pf)rows=rows.filter(r=>r.pot===pf);
   if(rf)rows=rows.filter(r=>r.rag===rf);
   if(ref)rows=rows.filter(r=>r.recur===ref);
+  const selTowerW=document.getElementById('w-tower').value;
+  function towerOfW(wk){const m=(wk||'').match(/GDR(\d{3})/);return m?'GDR'+m[1]:null;}
   if(actFilter==='low')rows=rows.filter(r=>r.actpct<0.3);
+  if(selTowerW)rows=rows.filter(r=>towerOfW(r.wbsKey)===selTowerW);
   rows.sort((a,b)=>{let va=a[wbsSortCol],vb=b[wbsSortCol];if(va<vb)return -wbsSortDir;if(va>vb)return wbsSortDir;return 0;});
   document.getElementById('w-count').textContent=rows.length.toLocaleString()+' rows';
   const ragColors={'OVER':'#c0392b','R':'#c0392b','A':'#b5620a','G':'#2e6b3e'};
@@ -944,10 +1010,13 @@ function populateSelects(){
   }
   setOpts('flow-month',months,'All months');
   setOpts('flow-pot',pots,'All types');
+  setOpts('flow-tower',allTowers,'All towers');
   setOpts('low-pot',pots,'All types');
+  setOpts('low-tower',allTowers,'All towers');
   setOpts('rec-pot',pots,'All types');
   setOpts('w-sfx',suffixes,'All');
   setOpts('w-pot',pots,'All');
+  setOpts('w-tower',allTowers,'All towers');
 }
 
 function updateNavBadges(){
@@ -971,10 +1040,10 @@ function setActFilter(v){
   renderWBS();
 }
 
-['flow-month','flow-pot'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFlow));
-['low-pot'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLocked));
+['flow-month','flow-pot','flow-tower'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFlow));
+['low-pot','low-tower'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLocked));
 ['rec-pot','rec-pat'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderRecurring));
-['w-sfx','w-pot','w-rag','w-rec'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderWBS));
+['w-sfx','w-pot','w-rag','w-rec','w-tower'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderWBS));
 
 document.querySelectorAll('[data-col]').forEach(th=>{
   th.addEventListener('click',()=>{
@@ -1135,9 +1204,9 @@ loadData();
 loadHistory();
 
 // Back-to-top button visibility
-document.querySelector('.content').addEventListener('scroll',function(){
-  document.getElementById('back-to-top').style.display=this.scrollTop>300?'block':'none';
-});
+window.addEventListener('scroll',function(){
+  document.getElementById('back-to-top').style.display=window.scrollY>300?'block':'none';
+},true);
 </script>
 </body>
 </html>
