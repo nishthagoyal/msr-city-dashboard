@@ -664,7 +664,11 @@ function processData(wbsRows,mRows){
     const actpct=budget>0?actual/budget:0;
     const balance=budget-actual-commit;
     let rag=deploy>1.0?'OVER':deploy>0.95?'R':deploy>0.75?'A':'G';
-    return{wbs:row.wbs,wbsKey:row.wbs_key,desc:row.description,pot:row.pot||'OTHER',
+    // Derive POT from WBS code if not stored or is OTHER
+    let pot=row.pot&&row.pot!=='OTHER'?row.pot:null;
+    if(!pot&&row.wbs){const m=(row.wbs||'').match(/\.([A-Z]{2})\d*$/);if(m&&SEG_POT[m[1]])pot=SEG_POT[m[1]];}
+    if(!pot)pot='OTHER';
+    return{wbs:row.wbs,wbsKey:row.wbs_key,desc:row.description,pot,
       budget,actual,commit,deploy,actpct,balance,rag,recur:rec.pattern,avgMonthly:rec.avgMonthly};
   });
 
@@ -719,6 +723,15 @@ function renderAlerts(){
   document.getElementById('kbs').textContent=merged.length+' WBS codes';
   document.getElementById('ka').textContent=cr(tA);
   document.getElementById('kas').textContent=pct(tB>0?tA/tB:0)+' of budget spent';
+
+  // Make KPI cards clickable — scroll to the relevant section
+  document.getElementById('k-over').closest('.kcard').style.cursor='pointer';
+  document.getElementById('k-over').closest('.kcard').onclick=()=>document.getElementById('over-list').scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('k-red').closest('.kcard').style.cursor='pointer';
+  document.getElementById('k-red').closest('.kcard').onclick=()=>document.getElementById('red-list').scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('k-amb').closest('.kcard').style.cursor='pointer';
+  document.getElementById('k-amb').closest('.kcard').onclick=()=>document.getElementById('amb-list').scrollIntoView({behavior:'smooth',block:'start'});
+
   function alertCards(arr,cls){
     if(!arr.length)return emptyH('✅','None in this category','');
     return arr.map(r=>{
@@ -741,23 +754,27 @@ function renderAlerts(){
 function renderFlow(){
   const selMonth=document.getElementById('flow-month').value;
   const selPOT=document.getElementById('flow-pot').value;
-  let rows=monthlyRows;
-  if(selMonth)rows=rows.filter(r=>r.month===selMonth);
+  // Build wbsMap once for all lookups
+  const wbsMap={};merged.forEach(r=>wbsMap[r.wbsKey]=r);
+  // Helper: get POT for a monthly row — prefer wbs_snapshot POT over monthly_spend POT
+  function rowPOT(r){const w=wbsMap[r.wbs_key];return(w&&w.pot&&w.pot!=='OTHER')?w.pot:(r.pot||'OTHER');}
+
+  // Chart: spend by POT (filtered by month only, not POT — so chart shows full picture)
+  let chartRows=monthlyRows;
+  if(selMonth)chartRows=chartRows.filter(r=>r.month===selMonth);
   const byPOT={};
-  rows.forEach(r=>{
-    const wbsRow=merged.find(m=>m.wbsKey===r.wbs_key);
-    const pot=r.pot||(wbsRow?wbsRow.pot:'OTHER');
-    byPOT[pot]=(byPOT[pot]||0)+Number(r.amount);
-  });
+  chartRows.forEach(r=>{const pot=rowPOT(r);byPOT[pot]=(byPOT[pot]||0)+Number(r.amount);});
   const potsSorted=Object.keys(byPOT).filter(p=>byPOT[p]>0).sort((a,b)=>byPOT[b]-byPOT[a]).slice(0,12);
   const COLORS=['#c0392b','#e67e22','#f39c12','#2e86c1','#1abc9c','#8e44ad','#27ae60','#2980b9','#d35400','#16a085','#7f8c8d','#2c3e50'];
   mkChart('chart-pot','bar',{
     labels:potsSorted,
     datasets:[{data:potsSorted.map(p=>+byPOT[p].toFixed(2)),backgroundColor:COLORS,borderWidth:0}]
   },{scales:{x:{ticks:{font:{size:9}},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>'₹'+v.toFixed(0)+'Cr'},grid:{color:'rgba(0,0,0,0.05)'}}}});
+
+  // Trend chart: filtered by POT if selected
   const byMonth={};
   monthlyRows.forEach(r=>{
-    if(selPOT){const wbsRow=merged.find(m=>m.wbsKey===r.wbs_key);const pot=r.pot||(wbsRow?wbsRow.pot:'OTHER');if(pot!==selPOT)return;}
+    if(selPOT&&rowPOT(r)!==selPOT)return;
     byMonth[r.month]=(byMonth[r.month]||0)+Number(r.amount);
   });
   const mSorted=Object.keys(byMonth).sort().slice(-18);
@@ -765,19 +782,16 @@ function renderFlow(){
     labels:mSorted,
     datasets:[{data:mSorted.map(m=>+byMonth[m].toFixed(2)),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,0.08)',tension:.3,pointRadius:3,fill:true,borderWidth:1.5}]
   },{scales:{x:{ticks:{font:{size:9},maxRotation:45},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>'₹'+v.toFixed(0)+'Cr'},grid:{color:'rgba(0,0,0,0.05)'}}}});
+
+  // Table: filtered by both month and POT
   let flowRows=monthlyRows;
   if(selMonth)flowRows=flowRows.filter(r=>r.month===selMonth);
+  if(selPOT)flowRows=flowRows.filter(r=>rowPOT(r)===selPOT);
   flowRows=flowRows.filter(r=>Math.abs(Number(r.amount))>0);
-  if(selPOT)flowRows=flowRows.filter(r=>{
-    const wbsRow=merged.find(m=>m.wbsKey===r.wbs_key);
-    const pot=r.pot||(wbsRow?wbsRow.pot:'OTHER');
-    return pot===selPOT;
-  });
   flowRows.sort((a,b)=>Math.abs(Number(b.amount))-Math.abs(Number(a.amount)));
-  const wbsMap={};merged.forEach(r=>wbsMap[r.wbsKey]=r);
   document.getElementById('flow-body').innerHTML=flowRows.slice(0,500).map(r=>{
     const wbs=wbsMap[r.wbs_key];
-    const pot=r.pot||(wbs?wbs.pot:'OTHER');
+    const pot=rowPOT(r);
     return`<tr>
       <td class="mono">${r.month}</td>
       <td><span class="badge ${pot.toLowerCase().substring(0,4)}" style="background:var(--paper2);color:var(--ink2)">${pot}</span></td>
@@ -794,12 +808,12 @@ function renderLocked(){
   document.getElementById('k-locked-n').textContent=locked.length;
   document.getElementById('k-locked-v').textContent=cr(sm(locked,'commit'));
   document.getElementById('locked-grid').innerHTML=locked.slice(0,20).map(r=>`<div class="locked-card">
-    <div class="locked-wbs">${r.wbs}</div>
+    <div class="locked-wbs">${r.wbs} · <span style="font-weight:600;color:#1a4a8a">${r.pot}</span></div>
     <div class="locked-desc">${r.desc||'—'}</div>
     <div class="locked-stats">
-      <div class="locked-stat">Commit <b>${cr(r.commit)}</b></div>
-      <div class="locked-stat">Actual <b>${pct(r.actpct)}</b></div>
-      <div class="locked-stat">Type <b>${r.pot}</b></div>
+      <div class="locked-stat">Committed <b>${cr(r.commit)}</b></div>
+      <div class="locked-stat">Actual spent <b>${pct(r.actpct)}</b></div>
+      <div class="locked-stat">Budget <b>${cr(r.budget)}</b></div>
     </div>
   </div>`).join('') || emptyH('✅','No locked budget detected','');
   let low=merged.filter(r=>r.actpct*100<lowThreshold&&r.budget>0.05);
