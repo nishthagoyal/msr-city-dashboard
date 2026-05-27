@@ -430,6 +430,8 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <table class="dt">
           <thead><tr>
             <th>WBS Code</th><th>Description</th><th>Cost Type</th><th>Pattern</th>
+            <th style="text-align:right">Months Active</th>
+            <th>First Month</th><th>Last Month</th>
             <th style="text-align:right">Avg Monthly</th>
             <th style="text-align:right" id="fh1">Month 1</th>
             <th style="text-align:right" id="fh2">Month 2</th>
@@ -723,7 +725,6 @@ function processData(wbsRows,mRows){
   Object.keys(monthMap).forEach(k=>{
     const months=Object.keys(monthMap[k]).sort();
     const cnt=months.length;if(cnt<2)return;
-    // Use calendar month gaps (more accurate than day-based)
     const gaps=[];
     for(let i=1;i<months.length;i++){
       const [ay,am]=months[i-1].split('-').map(Number);
@@ -735,7 +736,11 @@ function processData(wbsRows,mRows){
     const tot=Object.values(monthMap[k]).reduce((s,v)=>s+v,0);
     let pat='-';
     if(cnt>=6&&ag<=2)pat='REC';else if(cnt>=4&&ag<=2)pat='SEMI';
-    recurMap[k]={pattern:pat,avgMonthly:tot/cnt};
+    // Last 3 months average for forecast
+    const last3=months.slice(-3);
+    const last3avg=last3.reduce((s,m)=>s+(monthMap[k][m]||0),0)/last3.length;
+    recurMap[k]={pattern:pat,avgMonthly:tot/cnt,last3avg,last3months:last3,
+      monthsActive:cnt,firstMonth:months[0],lastMonth:months[months.length-1]};
   });
 
   merged=wbsRows.map(row=>{
@@ -775,7 +780,6 @@ function processData(wbsRows,mRows){
   Object.keys(recurMap).forEach(k=>{
     const rec=recurMap[k];
     if(rec.pattern==='-')return;
-    // Use wbsMap entry if exists, else create minimal entry
     const snap=wbsMap[k];
     recurring.push({
       wbs: snap?snap.wbs:k,
@@ -784,10 +788,14 @@ function processData(wbsRows,mRows){
       pot: snap?snap.pot:potFromWbs(k),
       recur: rec.pattern,
       avgMonthly: rec.avgMonthly,
+      last3avg: rec.last3avg,
+      monthsActive: rec.monthsActive,
+      firstMonth: rec.firstMonth,
+      lastMonth: rec.lastMonth,
       actual: snap?snap.actual:0,
     });
   });
-  recurring.sort((a,b)=>Math.abs(b.avgMonthly)-Math.abs(a.avgMonthly));
+  recurring.sort((a,b)=>Math.abs(b.last3avg)-Math.abs(a.last3avg));
   allMonths=[...new Set(mRows.map(r=>r._mo).filter(Boolean))].sort();
   // Build POTs from BOTH merged (snapshot) and monthly rows for complete list
   const potSet=new Set(merged.map(r=>r.pot).filter(p=>p&&p!=='OTHER'));
@@ -975,7 +983,7 @@ function renderRecurring(){
   document.getElementById('frt').textContent=cr(sm(rR,'actual'))+' total to date';
   document.getElementById('fsc').textContent=sR.length;
   document.getElementById('fst').textContent=cr(sm(sR,'actual'))+' total to date';
-  const monthly=sm(rows,'avgMonthly');
+  const monthly=rows.reduce((s,r)=>s+r.last3avg,0);
   document.getElementById('fm').textContent=cr(monthly);
   document.getElementById('f3m').textContent=cr(monthly*3);
   document.getElementById('rec-count').textContent=rows.length+' lines';
@@ -992,7 +1000,6 @@ function renderRecurring(){
     labels:pots,
     datasets:[{data:pots.map(p=>+byPOT[p].toFixed(2)),backgroundColor:'#c0392b',borderWidth:0}]
   },{scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>'₹'+v.toFixed(1)+'Cr'},grid:{color:'rgba(0,0,0,0.05)'}}}});
-  const j=v=>v*(0.94+Math.random()*.12);
   if(!rows.length){
     document.getElementById('rec-body').innerHTML='<tr><td colspan="8">'+emptyH('📅','No recurring patterns detected','Need cost data with 4+ months of postings per WBS code')+'</td></tr>';
     return;
@@ -1000,13 +1007,16 @@ function renderRecurring(){
   const tbody=rows.map(r=>`<tr>
     <td class="mono">${r.wbs}</td><td>${r.desc||'—'}</td><td>${r.pot}</td>
     <td><span class="badge ${r.recur.toLowerCase()}">${r.recur}</span></td>
+    <td class="nr" style="font-family:var(--font-mono)">${r.monthsActive}</td>
+    <td class="mono">${r.firstMonth||'—'}</td>
+    <td class="mono">${r.lastMonth||'—'}</td>
     <td class="nr">${cr(r.avgMonthly)}</td>
-    <td class="nr">${cr(j(r.avgMonthly))}</td>
-    <td class="nr">${cr(j(r.avgMonthly))}</td>
-    <td class="nr">${cr(j(r.avgMonthly))}</td>
+    <td class="nr">${cr(r.last3avg)}</td>
+    <td class="nr">${cr(r.last3avg)}</td>
+    <td class="nr">${cr(r.last3avg)}</td>
   </tr>`);
-  const tot=sm(rows,'avgMonthly');
-  tbody.push(`<tr style="background:var(--paper2);font-weight:500"><td colspan="4" style="text-align:right;font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em">Total projected</td><td class="nr">${cr(tot)}</td><td class="nr">${cr(tot*.99)}</td><td class="nr">${cr(tot*1.01)}</td><td class="nr">${cr(tot)}</td></tr>`);
+  const tot=rows.reduce((s,r)=>s+r.last3avg,0);
+  tbody.push(`<tr style="background:var(--paper2);font-weight:500"><td colspan="7" style="text-align:right;font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em">Total projected</td><td class="nr">${cr(rows.reduce((s,r)=>s+r.avgMonthly,0))}</td><td class="nr">${cr(tot)}</td><td class="nr">${cr(tot)}</td><td class="nr">${cr(tot)}</td></tr>`);
   document.getElementById('rec-body').innerHTML=tbody.join('');
 }
 
