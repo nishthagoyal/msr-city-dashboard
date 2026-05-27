@@ -706,6 +706,10 @@ function processData(wbsRows,mRows){
     // Prefer amount_cr (populated by SQL fix) over amount
     r._amt=r.amount_cr!=null?Number(r.amount_cr):(r.amount!=null?Number(r.amount):0);
   });
+  // DEBUG: log sample rows to console
+  const sampleConst=mRows.filter(r=>r._wk&&r._wk.includes('GDR006')&&r._pot!=='BROKER').slice(0,3);
+  console.log('DEBUG GDR006 non-broker rows:',sampleConst.map(r=>({wk:r._wk,mo:r._mo,amt:r._amt,pot:r._pot})));
+  console.log('DEBUG total mRows:',mRows.length,'with _wk:',mRows.filter(r=>r._wk).length,'with _mo:',mRows.filter(r=>r._mo).length);
   mRows.forEach(r=>{
     if(!r._wk||!r._mo)return;
     if(!monthMap[r._wk])monthMap[r._wk]={};
