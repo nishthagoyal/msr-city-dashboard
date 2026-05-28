@@ -696,7 +696,7 @@ function descFromKey(key){
 
 function processData(wbsRows,mRows){
   // Find parent codes (codes that are prefixes of other codes)
-  const allWbsCodes=new Set(wbsRows.map(r=>r.wbs).filter(Boolean));
+  const allWbsCodes=new Set(wbsRows.map(r=>r.wbs||r.wbs_key).filter(Boolean));
   const parentCodes=new Set();
   allWbsCodes.forEach(code=>{
     const parts=code.split('.');
@@ -752,9 +752,11 @@ function processData(wbsRows,mRows){
     const actpct=budget>0?actual/budget:0;
     const balance=budget-actual-commit;
     let rag=deploy>1.0?'OVER':deploy>0.95?'R':deploy>0.75?'A':'G';
-    const pot=potFromWbs(row.wbs);
-    const isLeaf=!parentCodes.has(row.wbs);
-    return{wbs:row.wbs,wbsKey:row.wbs_key,desc:row.description,pot,isLeaf,
+    // Use wbs column if available, fall back to wbs_key for POT derivation
+    const wbsCode=row.wbs||row.wbs_key||'';
+    const pot=potFromWbs(wbsCode);
+    const isLeaf=!parentCodes.has(wbsCode);
+    return{wbs:wbsCode,wbsKey:row.wbs_key||row.wbs||'',desc:row.description,pot,isLeaf,
       budget,actual,commit,deploy,actpct,balance,rag,recur:rec.pattern,avgMonthly:rec.avgMonthly};
   });
 
