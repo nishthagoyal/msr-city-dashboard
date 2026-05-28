@@ -631,8 +631,13 @@ async function loadData(){
     const uploads=await sb('uploads?select=*&order=uploaded_at.desc&limit=1',{headers:{'Accept':'application/json'}});
     if(!uploads?.length){setSt('No data yet','');renderEmpty();loadHistory();return;}
     const latest=uploads[0];
-    // Fetch wbs_snapshot normally
-    const wbsRows=await sb('wbs_snapshot?select=*&upload_id=eq.'+latest.id+'&limit=5000',{headers:{'Accept':'application/json'}});
+    // Paginate wbs_snapshot (Supabase caps at 1000 rows per request)
+    let wbsRows=[], wbsOffset=0, wbsPage;
+    do {
+      wbsPage=await sb('wbs_snapshot?select=*&upload_id=eq.'+latest.id+'&limit=1000&offset='+wbsOffset,{headers:{'Accept':'application/json'}});
+      if(wbsPage&&wbsPage.length)wbsRows=wbsRows.concat(wbsPage);
+      wbsOffset+=1000;
+    } while(wbsPage&&wbsPage.length===1000);
     // Paginate monthly_spend (Supabase default limit is 1000 rows per request)
     let mRows=[], mOffset=0, mPage;
     do {
