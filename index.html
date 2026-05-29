@@ -855,10 +855,12 @@ function mkChart(id,type,data,opts){
 }
 
 function renderAlerts(){
-  const over=merged.filter(r=>r.rag==='OVER').sort((a,b)=>b.deploy-a.deploy);
-  const red=merged.filter(r=>r.rag==='R').sort((a,b)=>b.deploy-a.deploy);
-  const amb=merged.filter(r=>r.rag==='A').sort((a,b)=>b.deploy-a.deploy);
-  const tB=sm(merged,'budget'),tA=sm(merged,'actual');
+  // Only use leaf nodes — parent nodes are summaries and would double-count
+  const leaves=merged.filter(r=>r.isLeaf);
+  const over=leaves.filter(r=>r.rag==='OVER').sort((a,b)=>b.deploy-a.deploy);
+  const red=leaves.filter(r=>r.rag==='R').sort((a,b)=>b.deploy-a.deploy);
+  const amb=leaves.filter(r=>r.rag==='A').sort((a,b)=>b.deploy-a.deploy);
+  const tB=sm(leaves,'budget'),tA=sm(leaves,'actual');
   document.getElementById('k-over').textContent=over.length;
   document.getElementById('k-over-s').textContent=over.length?cr(sm(over,'actual'))+' over budget':'none';
   document.getElementById('k-red').textContent=red.length;
@@ -1045,7 +1047,7 @@ function renderWBS(){
   document.getElementById('w-count').textContent=rows.length.toLocaleString()+' rows';
   const ragColors={'OVER':'#c0392b','R':'#c0392b','A':'#b5620a','G':'#2e6b3e'};
   document.getElementById('wbs-body').innerHTML=rows.map(r=>{
-    const rowCls=r.rag==='OVER'?'over-row':r.actpct<0.3&&r.budget>0.05?'low-row':'';
+    const rowCls=r.isLeaf&&r.rag==='OVER'?'over-row':r.isLeaf&&r.actpct<0.3&&r.budget>0.05?'low-row':'';
     return`<tr class="${rowCls}">
       <td class="mono">${r.wbs}</td>
       <td>${r.desc||'—'}</td>
@@ -1084,9 +1086,9 @@ function populateSelects(){
 }
 
 function updateNavBadges(){
-  const alerts=merged.filter(r=>r.rag==='OVER'||r.rag==='R').length;
-  const amb=merged.filter(r=>r.rag==='A').length;
-  const locked=merged.filter(r=>r.actpct<0.3&&r.commit>0&&r.budget>0.1).length;
+  const alerts=merged.filter(r=>r.isLeaf&&(r.rag==='OVER'||r.rag==='R')).length;
+  const amb=merged.filter(r=>r.isLeaf&&r.rag==='A').length;
+  const locked=merged.filter(r=>r.isLeaf&&r.actpct<0.3&&r.commit>0&&r.budget>0.1).length;
   document.getElementById('nb-alert').textContent=(alerts+amb)||'0';
   document.getElementById('nb-locked').textContent=locked||'0';
 }
