@@ -239,6 +239,9 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
     <div class="nav-item" data-nav="wbs" onclick="switchNav('wbs')">
       <span class="nav-icon">≡</span> Full WBS Table
     </div>
+    <div class="nav-item" data-nav="txn" onclick="switchNav('txn')">
+      <span class="nav-icon">↓</span> All Transactions
+    </div>
 
     <div class="nav-spacer"></div>
     <div class="nav-last-update" id="nav-update">No data loaded</div>
@@ -310,6 +313,7 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <select class="mf-sel" id="flow-tower"><option value="">All towers</option></select>
         <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Phase</label>
         <select class="mf-sel" id="flow-phase"><option value="">All phases</option></select>
+        <button class="mf-tag" onclick="clearFilters('flow')" style="margin-left:4px;cursor:pointer">✕ Clear</button>
       </div>
 
       <div class="flow-grid">
@@ -370,6 +374,7 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <select class="mf-sel" id="locked-tower"><option value="">All towers</option></select>
         <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Phase</label>
         <select class="mf-sel" id="locked-phase"><option value="">All phases</option></select>
+        <button class="mf-tag" onclick="clearFilters('locked')" style="margin-left:4px;cursor:pointer">✕ Clear</button>
       </div>
       <div class="locked-grid" id="locked-grid">
         <div class="empty"><div class="empty-i">⏳</div><div class="empty-t">Loading…</div></div>
@@ -386,6 +391,7 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <select class="mf-sel" id="low-tower"><option value="">All towers</option></select>
         <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:4px">Phase</label>
         <select class="mf-sel" id="low-phase"><option value="">All phases</option></select>
+        <button class="mf-tag" onclick="clearFilters('low')" style="margin-left:4px;cursor:pointer">✕ Clear</button>
         <div class="mf-spacer"></div>
         <span class="mf-count" id="low-count">—</span>
       </div>
@@ -470,6 +476,7 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <select class="mf-sel" id="w-tower"><option value="">All towers</option></select>
         <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Phase</label>
         <select class="mf-sel" id="w-phase"><option value="">All phases</option></select>
+        <button class="mf-tag" onclick="clearFilters('w')" style="margin-left:4px;cursor:pointer">✕ Clear</button>
         <div class="mf-tag on" id="tag-all" onclick="setActFilter('all')">All</div>
         <div class="mf-tag" id="tag-low" onclick="setActFilter('low')">Low util &lt;30%</div>
         <div class="mf-spacer"></div>
@@ -488,6 +495,39 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
             <th data-col="recur">Pattern</th><th data-col="rag">RAG</th>
           </tr></thead>
           <tbody id="wbs-body"></tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ── TRANSACTIONS ── -->
+    <div class="pg" id="pg-txn">
+      <div class="page-title">All Transactions</div>
+      <div class="page-sub">Every posting from the SAP transaction dump — filter by any combination</div>
+      <div class="month-filters" id="txn-filters">
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Month</label>
+        <select class="mf-sel" id="txn-month"><option value="">All months</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Cost Type</label>
+        <select class="mf-sel" id="txn-pot"><option value="">All types</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Tower</label>
+        <select class="mf-sel" id="txn-tower"><option value="">All towers</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Phase</label>
+        <select class="mf-sel" id="txn-phase"><option value="">All phases</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">WBS search</label>
+        <input type="text" id="txn-wbs-search" placeholder="e.g. MK07 or GDR012" style="font-size:12px;padding:4px 8px;border:1px solid var(--paper3);border-radius:var(--r);background:var(--paper);color:var(--ink);font-family:var(--font-mono);width:140px">
+        <button class="mf-tag" onclick="clearFilters('txn')" style="margin-left:4px;cursor:pointer">✕ Clear</button>
+        <div class="mf-spacer"></div>
+        <span class="mf-count" id="txn-count">—</span>
+      </div>
+      <div class="tw"><div class="tw-scroll">
+        <table class="dt">
+          <thead><tr>
+            <th>Month</th><th>WBS Code</th><th>Description</th>
+            <th>Cost Type</th><th>Tower</th><th>Phase</th>
+            <th style="text-align:right">Amount (Cr)</th>
+          </tr></thead>
+          <tbody id="txn-body">
+            <tr><td colspan="7"><div class="empty"><div class="empty-i">⏳</div><div class="empty-t">Loading…</div></div></td></tr>
+          </tbody>
         </table>
       </div></div>
     </div>
@@ -860,6 +900,7 @@ function renderAll(){
   renderLocked();
   renderRecurring();
   renderWBS();
+  renderTxn();
   updateNavBadges();
 }
 
@@ -1117,6 +1158,10 @@ function populateSelects(){
   setOpts('w-pot',pots,'All');
   setOpts('w-tower',allTowers,'All towers');
   setOpts('w-phase',allPhases,'All phases');
+  setOpts('txn-month',months,'All months');
+  setOpts('txn-pot',pots,'All types');
+  setOpts('txn-tower',allTowers,'All towers');
+  setOpts('txn-phase',allPhases,'All phases');
 }
 
 function updateNavBadges(){
@@ -1299,6 +1344,66 @@ async function loadHistory(){
     }).join('');
   }catch(e){console.error(e);}
 }
+
+// ── CLEAR FILTERS ─────────────────────────────────
+function clearFilters(prefix){
+  const ids={
+    flow:['flow-month','flow-pot','flow-tower','flow-phase'],
+    locked:['locked-pot','locked-tower','locked-phase'],
+    low:['low-pot','low-tower','low-phase'],
+    w:['w-sfx','w-pot','w-rag','w-rec','w-tower','w-phase'],
+    txn:['txn-month','txn-pot','txn-tower','txn-phase'],
+  };
+  (ids[prefix]||[]).forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.value='';
+  });
+  if(prefix==='txn'){
+    const s=document.getElementById('txn-wbs-search');
+    if(s)s.value='';
+    renderTxn();
+  } else if(prefix==='flow')renderFlow();
+  else if(prefix==='locked'||prefix==='low')renderLocked();
+  else if(prefix==='w')renderWBS();
+}
+
+// ── TRANSACTIONS ───────────────────────────────────
+function renderTxn(){
+  const selMonth=document.getElementById('txn-month').value;
+  const selPOT=document.getElementById('txn-pot').value;
+  const selTower=document.getElementById('txn-tower').value;
+  const selPhase=document.getElementById('txn-phase').value;
+  const wbsSearch=(document.getElementById('txn-wbs-search').value||'').trim().toUpperCase();
+
+  let rows=[...monthlyRows];
+  if(selMonth)rows=rows.filter(r=>r._mo===selMonth);
+  if(selPOT)rows=rows.filter(r=>(r._pot||'OTHER')===selPOT);
+  if(selTower)rows=rows.filter(r=>{const m=(r._wk||'').match(/GDR(\d{3})/);return m?'GDR'+m[1]===selTower:false;});
+  if(selPhase)rows=rows.filter(r=>phaseOf(r._wk)===selPhase);
+  if(wbsSearch)rows=rows.filter(r=>(r._wk||'').toUpperCase().includes(wbsSearch));
+  rows=rows.filter(r=>Math.abs(r._amt)>0);
+  rows.sort((a,b)=>Math.abs(b._amt)-Math.abs(a._amt));
+
+  document.getElementById('txn-count').textContent=rows.length.toLocaleString()+' rows';
+  document.getElementById('txn-body').innerHTML=rows.slice(0,1000).map(r=>{
+    const w=wbsMap[r._wk];
+    const tower=(r._wk||'').match(/GDR(\d{3})/);
+    const towerStr=tower?'GDR'+tower[1]:'—';
+    const phaseStr=phaseOf(r._wk)||'—';
+    return`<tr>
+      <td class="mono">${r._mo||'—'}</td>
+      <td class="mono">${r._wk||'—'}</td>
+      <td>${w?w.desc:descFromKey(r._wk)}</td>
+      <td>${r._pot||'OTHER'}</td>
+      <td class="mono">${towerStr}</td>
+      <td>${phaseStr}</td>
+      <td class="${r._amt>=0?'pos':'neg'}">${cr(r._amt)}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink3)">No transactions match filters</td></tr>';
+}
+
+['txn-month','txn-pot','txn-tower','txn-phase'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderTxn));
+document.getElementById('txn-wbs-search')?.addEventListener('input',renderTxn);
 
 loadData();
 loadHistory();
