@@ -308,6 +308,8 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <select class="mf-sel" id="flow-pot"><option value="">All types</option></select>
         <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Tower</label>
         <select class="mf-sel" id="flow-tower"><option value="">All towers</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Phase</label>
+        <select class="mf-sel" id="flow-phase"><option value="">All phases</option></select>
       </div>
 
       <div class="flow-grid">
@@ -366,6 +368,8 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <select class="mf-sel" id="locked-pot"><option value="">All types</option></select>
         <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Tower</label>
         <select class="mf-sel" id="locked-tower"><option value="">All towers</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Phase</label>
+        <select class="mf-sel" id="locked-phase"><option value="">All phases</option></select>
       </div>
       <div class="locked-grid" id="locked-grid">
         <div class="empty"><div class="empty-i">⏳</div><div class="empty-t">Loading…</div></div>
@@ -380,6 +384,8 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <select class="mf-sel" id="low-pot"><option value="">All types</option></select>
         <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:4px">Tower</label>
         <select class="mf-sel" id="low-tower"><option value="">All towers</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:4px">Phase</label>
+        <select class="mf-sel" id="low-phase"><option value="">All phases</option></select>
         <div class="mf-spacer"></div>
         <span class="mf-count" id="low-count">—</span>
       </div>
@@ -462,6 +468,8 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         </select>
         <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Tower</label>
         <select class="mf-sel" id="w-tower"><option value="">All towers</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Phase</label>
+        <select class="mf-sel" id="w-phase"><option value="">All phases</option></select>
         <div class="mf-tag on" id="tag-all" onclick="setActFilter('all')">All</div>
         <div class="mf-tag" id="tag-low" onclick="setActFilter('low')">Low util &lt;30%</div>
         <div class="mf-spacer"></div>
@@ -594,6 +602,7 @@ if(!CONFIGURED){
 
 // ── STATE ──────────────────────────────────────────
 let merged=[], recurring=[], monthlyRows=[], allMonths=[], allPOTs=[], allTowers=[];
+const allPhases=['Phase 1A','Phase 1B','Phase 1C'];
 let charts={};
 let lowThreshold=30, actFilter='all';
 let wbsSortCol='rag', wbsSortDir=1;
@@ -656,6 +665,17 @@ async function loadData(){
 
 // Global wbsMap accessible by all render functions
 let wbsMap={};
+
+// Derive phase from WBS code
+function phaseOf(wk){
+  const m=(wk||'').match(/GDR(\d{3})/);
+  if(!m)return null;
+  const n=parseInt(m[1]);
+  if(n>=1&&n<=15)return'Phase 1A';
+  if(n>=16&&n<=31)return'Phase 1B';
+  if(n>=32&&n<=39)return'Phase 1C';
+  return null;
+}
 
 // Derive POT from WBS code string - handles dotted and stripped keys
 function potFromWbs(code){
@@ -903,10 +923,12 @@ function renderFlow(){
   const selPOT=document.getElementById('flow-pot').value;
   // Use _pot enriched in processData (derived from WBS code via SEG_POT map)
   const selTower=document.getElementById('flow-tower').value;
+  const selPhase=document.getElementById('flow-phase').value;
   function towerOf(wk){const m=(wk||'').match(/GDR(\d{3})/);return m?'GDR'+m[1]:null;}
   let chartRows=monthlyRows;
   if(selMonth)chartRows=chartRows.filter(r=>r._mo===selMonth);
   if(selTower)chartRows=chartRows.filter(r=>towerOf(r._wk)===selTower);
+  if(selPhase)chartRows=chartRows.filter(r=>phaseOf(r._wk)===selPhase);
   const byPOT={};
   chartRows.forEach(r=>{const pot=r._pot||'OTHER';byPOT[pot]=(byPOT[pot]||0)+r._amt;});
   const potsSorted=Object.keys(byPOT).filter(p=>byPOT[p]>0).sort((a,b)=>byPOT[b]-byPOT[a]).slice(0,12);
@@ -919,6 +941,7 @@ function renderFlow(){
   monthlyRows.forEach(r=>{
     if(selPOT&&(r._pot||'OTHER')!==selPOT)return;
     if(selTower&&towerOf(r._wk)!==selTower)return;
+    if(selPhase&&phaseOf(r._wk)!==selPhase)return;
     byMonth[r._mo]=(byMonth[r._mo]||0)+r._amt;
   });
   const mSorted=Object.keys(byMonth).sort().slice(-18);
@@ -930,6 +953,7 @@ function renderFlow(){
   if(selMonth)flowRows=flowRows.filter(r=>r._mo===selMonth);
   if(selPOT)flowRows=flowRows.filter(r=>(r._pot||'OTHER')===selPOT);
   if(selTower)flowRows=flowRows.filter(r=>towerOf(r._wk)===selTower);
+  if(selPhase)flowRows=flowRows.filter(r=>phaseOf(r._wk)===selPhase);
   flowRows=flowRows.filter(r=>Math.abs(r._amt)>0);
   flowRows.sort((a,b)=>Math.abs(Number(b.amount))-Math.abs(Number(a.amount)));
   document.getElementById('flow-body').innerHTML=flowRows.slice(0,500).map(r=>{
@@ -949,10 +973,12 @@ function renderLocked(){
   const selPOT=document.getElementById('low-pot').value;
   // Leaf-only for locked cards and low util (parent codes are just summaries)
   const selTowerL=document.getElementById('locked-tower').value;
+  const selPhaseL=document.getElementById('locked-phase')?.value||'';
   const selPOTL=document.getElementById('locked-pot')?.value||'';
   function towerOf(wk){const m=(wk||'').match(/GDR(\d{3})/);return m?'GDR'+m[1]:null;}
   const locked=merged.filter(r=>r.isLeaf&&r.actpct<0.3&&r.commit>0&&r.budget>0.1
     &&(!selTowerL||towerOf(r.wbsKey)===selTowerL)
+    &&(!selPhaseL||phaseOf(r.wbsKey)===selPhaseL)
     &&(!selPOTL||r.pot===selPOTL)).sort((a,b)=>b.commit-a.commit);
   document.getElementById('k-locked-n').textContent=locked.length;
   document.getElementById('k-locked-v').textContent=cr(sm(locked,'commit'));
@@ -968,6 +994,8 @@ function renderLocked(){
   let low=merged.filter(r=>r.isLeaf&&r.actpct*100<lowThreshold&&r.budget>0.05);
   if(selPOT)low=low.filter(r=>r.pot===selPOT);
   if(selTowerL)low=low.filter(r=>towerOf(r.wbsKey)===selTowerL);
+  const selPhaseLL=document.getElementById('low-phase')?.value||'';
+  if(selPhaseLL)low=low.filter(r=>phaseOf(r.wbsKey)===selPhaseLL);
   low.sort((a,b)=>{let va=a[lowSortCol],vb=b[lowSortCol];if(va<vb)return -lowSortDir;if(va>vb)return lowSortDir;return 0;});
   document.getElementById('k-low-n').textContent=low.length;
   document.getElementById('low-count').textContent=low.length+' rows';
@@ -1040,9 +1068,11 @@ function renderWBS(){
   if(rf)rows=rows.filter(r=>r.rag===rf);
   if(ref)rows=rows.filter(r=>r.recur===ref);
   const selTowerW=document.getElementById('w-tower').value;
+  const selPhaseW=document.getElementById('w-phase').value;
   function towerOfW(wk){const m=(wk||'').match(/GDR(\d{3})/);return m?'GDR'+m[1]:null;}
   if(actFilter==='low')rows=rows.filter(r=>r.actpct<0.3);
   if(selTowerW)rows=rows.filter(r=>towerOfW(r.wbsKey)===selTowerW);
+  if(selPhaseW)rows=rows.filter(r=>phaseOf(r.wbsKey)===selPhaseW);
   rows.sort((a,b)=>{let va=a[wbsSortCol],vb=b[wbsSortCol];if(va<vb)return -wbsSortDir;if(va>vb)return wbsSortDir;return 0;});
   document.getElementById('w-count').textContent=rows.length.toLocaleString()+' rows';
   const ragColors={'OVER':'#c0392b','R':'#c0392b','A':'#b5620a','G':'#2e6b3e'};
@@ -1075,14 +1105,18 @@ function populateSelects(){
   setOpts('flow-month',months,'All months');
   setOpts('flow-pot',pots,'All types');
   setOpts('flow-tower',allTowers,'All towers');
+  setOpts('flow-phase',allPhases,'All phases');
   setOpts('locked-pot',pots,'All types');
   setOpts('locked-tower',allTowers,'All towers');
+  setOpts('locked-phase',allPhases,'All phases');
   setOpts('low-pot',pots,'All types');
   setOpts('low-tower',allTowers,'All towers');
+  setOpts('low-phase',allPhases,'All phases');
   setOpts('rec-pot',pots,'All types');
   setOpts('w-sfx',suffixes,'All');
   setOpts('w-pot',pots,'All');
   setOpts('w-tower',allTowers,'All towers');
+  setOpts('w-phase',allPhases,'All phases');
 }
 
 function updateNavBadges(){
@@ -1106,10 +1140,10 @@ function setActFilter(v){
   renderWBS();
 }
 
-['flow-month','flow-pot','flow-tower'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFlow));
-['low-pot','low-tower','locked-pot','locked-tower'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLocked));
+['flow-month','flow-pot','flow-tower','flow-phase'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFlow));
+['low-pot','low-tower','low-phase','locked-pot','locked-tower','locked-phase'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLocked));
 ['rec-pot','rec-pat'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderRecurring));
-['w-sfx','w-pot','w-rag','w-rec','w-tower'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderWBS));
+['w-sfx','w-pot','w-rag','w-rec','w-tower','w-phase'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderWBS));
 
 document.querySelectorAll('[data-col]').forEach(th=>{
   th.addEventListener('click',()=>{
