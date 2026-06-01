@@ -1218,11 +1218,12 @@ function renderWBS(){
   if(selPhaseW)rows=rows.filter(r=>phaseOf(r.wbsKey)===selPhaseW);
   rows.sort((a,b)=>{let va=a[wbsSortCol],vb=b[wbsSortCol];if(va<vb)return -wbsSortDir;if(va>vb)return wbsSortDir;return 0;});
   document.getElementById('w-count').textContent=rows.length.toLocaleString()+' rows';
-  // Totals row
-  const wTotB=rows.reduce((s,r)=>s+(r.budget||0),0);
-  const wTotA=rows.reduce((s,r)=>s+(r.actual||0),0);
-  const wTotC=rows.reduce((s,r)=>s+(r.commit||0),0);
-  const wTotBal=rows.reduce((s,r)=>s+(r.balance||0),0);
+  // Totals row — leaf nodes only to avoid double counting parents
+  const leafRows=rows.filter(r=>r.isLeaf);
+  const wTotB=leafRows.reduce((s,r)=>s+(r.budget||0),0);
+  const wTotA=leafRows.reduce((s,r)=>s+(r.actual||0),0);
+  const wTotC=leafRows.reduce((s,r)=>s+(r.commit||0),0);
+  const wTotBal=leafRows.reduce((s,r)=>s+(r.balance||0),0);
   const wTotalsRow=`<tr style="background:var(--paper2);font-weight:600;position:sticky;bottom:0;z-index:1">
     <td colspan="3" style="font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink3)">Total (${rows.length.toLocaleString()} rows)</td>
     <td class="nr">${cr(wTotB)}</td>
