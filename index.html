@@ -585,7 +585,7 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
             <input type="text" id="up-label" placeholder="e.g. March 2026 update">
           </div>
           <div class="field">
-            <label>BVA file</label>
+            <label>BVA file <span style="color:var(--ink3);font-weight:400">(optional — skip if only adding new months)</span></label>
             <div class="drop" id="drop-bva" onclick="document.getElementById('inp-bva').click()">
               <div class="drop-t">Click to select BVA file</div>
               <div class="drop-s">.xlsx SAP BVA export</div>
@@ -1294,7 +1294,7 @@ document.getElementById('up-key').addEventListener('input',checkReady);
 
 function checkReady(){
   const key=document.getElementById('up-key').value.trim();
-  document.getElementById('up-btn').disabled=!(key&&bvaFile&&costFile&&CONFIGURED);
+  document.getElementById('up-btn').disabled=!(key&&costFile&&CONFIGURED);
 }
 
 function ulog(msg,cls='info'){
@@ -1310,16 +1310,24 @@ async function doUpload(){
   document.getElementById('up-log').innerHTML='';
   ulog('Reading files…');
   try{
-    const [bvaRows,costResult]=await Promise.all([parseBVA(bvaFile),parseCost(costFile)]);
-    ulog(`✓ BVA: ${bvaRows.length} WBS rows`,'ok');
+    const costResult=await parseCost(costFile);
     ulog(`✓ Cost data: ${costResult.validRows} rows, ${Object.keys(costResult.monthlyMap).length} WBS codes`,'ok');
+    let bvaRows=[];
+    if(bvaFile){
+      bvaRows=await parseBVA(bvaFile);
+      ulog(`✓ BVA: ${bvaRows.length} WBS rows`,'ok');
+    } else {
+      ulog('ℹ No BVA file — skipping snapshot update, appending cost data only','info');
+    }
     ulog('Saving to Supabase…');
     const upRes=await sb('uploads?select=id',{method:'POST',prefer:'return=representation',body:{label,bva_rows:bvaRows.length,cost_rows:costResult.validRows}});
     const uploadId=upRes[0].id;
     ulog('✓ Upload record created','ok');
-    const snapRows=bvaRows.map(r=>({upload_id:uploadId,wbs:r.wbs,wbs_key:r.wbsKey,description:r.desc,budget:r.budget,bva_actual:r.bvaActual,commitment:r.commit,pot:r.pot||null}));
-    for(let i=0;i<snapRows.length;i+=200)await sb('wbs_snapshot',{method:'POST',body:snapRows.slice(i,i+200)});
-    ulog(`✓ WBS snapshot saved (${snapRows.length} rows)`,'ok');
+    if(bvaRows.length>0){
+      const snapRows=bvaRows.map(r=>({upload_id:uploadId,wbs:r.wbs,wbs_key:r.wbsKey,description:r.desc,budget:r.budget,bva_actual:r.bvaActual,commitment:r.commit,pot:r.pot||null}));
+      for(let i=0;i<snapRows.length;i+=200)await sb('wbs_snapshot',{method:'POST',body:snapRows.slice(i,i+200)});
+      ulog(`✓ WBS snapshot saved (${snapRows.length} rows)`,'ok');
+    }
     const monthRows=[];
     Object.keys(costResult.monthlyMap).forEach(wk=>{
       Object.keys(costResult.monthlyMap[wk]).forEach(month=>{
