@@ -859,7 +859,17 @@ function processData(wbsRows,mRows){
   // Build global wbsMap and enrich monthly rows with correct POT
   wbsMap={};
   merged.forEach(r=>wbsMap[r.wbsKey]=r);
-  mRows.forEach(r=>{r._pot=(wbsMap[r._wk]?wbsMap[r._wk].pot:potFromWbs(r._wk));});
+  // Use pot column from monthly_spend directly (most accurate - comes from SAP Partner Object Type)
+  mRows.forEach(r=>{
+    const rawPot=(r.pot&&r.pot.trim()&&r.pot!=='OTHER')?r.pot.trim():null;
+    r._pot=rawPot||potFromWbs(r._wk);
+  });
+  // Update merged rows' pot using monthly data if monthly has a more specific POT
+  const wkPotMap={};
+  mRows.forEach(r=>{if(r._pot&&r._pot!=='OTHER')wkPotMap[r._wk]=r._pot;});
+  merged.forEach(r=>{
+    if(wkPotMap[r.wbsKey]&&r.pot==='OTHER')r.pot=wkPotMap[r.wbsKey];
+  });
 
   // Add project-level actuals (monthly rows with no matching snapshot entry) to total
   // These are costs like BLRGDRCM0FI that don't belong to a specific tower WBS
