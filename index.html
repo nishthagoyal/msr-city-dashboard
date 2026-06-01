@@ -314,6 +314,8 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Phase</label>
         <select class="mf-sel" id="flow-phase"><option value="">All phases</option></select>
         <button class="mf-tag" onclick="clearFilters('flow')" style="margin-left:4px;cursor:pointer">✕ Clear</button>
+        <div class="mf-spacer"></div>
+        <span id="flow-total" style="font-size:12px;font-family:var(--font-mono);color:var(--ink2);background:var(--paper2);border:1px solid var(--paper3);border-radius:var(--r);padding:3px 10px"></span>
       </div>
 
       <div class="flow-grid">
@@ -516,6 +518,7 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <input type="text" id="txn-wbs-search" placeholder="e.g. MK07 or GDR012" style="font-size:12px;padding:4px 8px;border:1px solid var(--paper3);border-radius:var(--r);background:var(--paper);color:var(--ink);font-family:var(--font-mono);width:140px">
         <button class="mf-tag" onclick="clearFilters('txn')" style="margin-left:4px;cursor:pointer">✕ Clear</button>
         <div class="mf-spacer"></div>
+        <span id="txn-total" style="font-size:12px;font-family:var(--font-mono);color:var(--ink2);background:var(--paper2);border:1px solid var(--paper3);border-radius:var(--r);padding:3px 10px;margin-right:8px"></span>
         <span class="mf-count" id="txn-count">—</span>
       </div>
       <div class="tw"><div class="tw-scroll">
@@ -997,6 +1000,9 @@ function renderFlow(){
   if(selPhase)flowRows=flowRows.filter(r=>phaseOf(r._wk)===selPhase);
   flowRows=flowRows.filter(r=>Math.abs(r._amt)>0);
   flowRows.sort((a,b)=>Math.abs(Number(b.amount))-Math.abs(Number(a.amount)));
+  const flowTotal=flowRows.reduce((s,r)=>s+r._amt,0);
+  const totalEl=document.getElementById('flow-total');
+  if(totalEl)totalEl.textContent='Total: '+cr(flowTotal);
   document.getElementById('flow-body').innerHTML=flowRows.slice(0,500).map(r=>{
     const w=wbsMap[r.wbs_key];
     const pot=r._pot||'OTHER';
@@ -1305,8 +1311,8 @@ async function parseCost(file){
     const rawAmt=row[8];
     const amt=typeof rawAmt==='number'?rawAmt:parseFloat(String(rawAmt||'').replace(/,/g,''));
     if(isNaN(amt)||amt===0)continue;
-    const drcr=String(row[25]||'');
-    const signed=(drcr==='D'?amt:drcr==='C'?-amt:amt)/1e7;
+    // Raw amounts are already signed (negatives = credits), Dr/Cr col is redundant
+    const signed=amt/1e7;
     const pot=derivePOT(wbsRaw,String(row[6]||''),String(row[30]||''));
     const wbsKey=wbsRaw.replace(/[-\.]/g,'').toUpperCase();
     let month=null;
@@ -1385,6 +1391,9 @@ function renderTxn(){
   rows.sort((a,b)=>Math.abs(b._amt)-Math.abs(a._amt));
 
   document.getElementById('txn-count').textContent=rows.length.toLocaleString()+' rows';
+  const txnTotal=rows.reduce((s,r)=>s+r._amt,0);
+  const txnTotalEl=document.getElementById('txn-total');
+  if(txnTotalEl)txnTotalEl.textContent='Total: '+cr(txnTotal);
   document.getElementById('txn-body').innerHTML=rows.slice(0,1000).map(r=>{
     const w=wbsMap[r._wk];
     const tower=(r._wk||'').match(/GDR(\d{3})/);
