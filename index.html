@@ -255,6 +255,25 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
       <div class="page-title">Alerts &amp; Overruns</div>
       <div class="page-sub">WBS codes needing immediate attention — overruns, near-limit, and at-risk packages</div>
 
+      <div class="month-filters" style="margin-bottom:1rem">
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Type</label>
+        <select class="mf-sel" id="al-pot"><option value="">All types</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Tower</label>
+        <select class="mf-sel" id="al-tower"><option value="">All towers</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Phase</label>
+        <select class="mf-sel" id="al-phase"><option value="">All phases</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">RAG</label>
+        <select class="mf-sel" id="al-rag">
+          <option value="">All</option>
+          <option value="OVER">Overrun</option>
+          <option value="R">Red</option>
+          <option value="A">Amber</option>
+        </select>
+        <button class="mf-tag" onclick="clearFilters('al')" style="margin-left:4px;cursor:pointer">✕ Clear</button>
+        <div class="mf-spacer"></div>
+        <span class="mf-count" id="al-count">—</span>
+      </div>
+
       <div class="kstrip">
         <div class="kcard alert">
           <div class="k-label">Overrun (&gt;100%)</div>
@@ -431,6 +450,11 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
         <select class="mf-sel" id="rec-pat">
           <option value="">All</option><option value="REC">REC only</option><option value="SEMI">SEMI only</option>
         </select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Tower</label>
+        <select class="mf-sel" id="rec-tower"><option value="">All towers</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Phase</label>
+        <select class="mf-sel" id="rec-phase"><option value="">All phases</option></select>
+        <button class="mf-tag" onclick="clearFilters('rec')" style="margin-left:4px;cursor:pointer">✕ Clear</button>
         <div class="mf-spacer"></div>
         <span class="mf-count" id="rec-count">—</span>
       </div>
@@ -923,12 +947,22 @@ function mkChart(id,type,data,opts){
 }
 
 function renderAlerts(){
+  const alPOT=document.getElementById('al-pot')?.value||'';
+  const alTower=document.getElementById('al-tower')?.value||'';
+  const alPhase=document.getElementById('al-phase')?.value||'';
+  const alRAG=document.getElementById('al-rag')?.value||'';
+  function alTowerOf(wk){const m=(wk||'').match(/GDR(\d{3})/);return m?'GDR'+m[1]:null;}
   // Only use leaf nodes — parent nodes are summaries and would double-count
-  const leaves=merged.filter(r=>r.isLeaf);
-  const over=leaves.filter(r=>r.rag==='OVER').sort((a,b)=>b.deploy-a.deploy);
-  const red=leaves.filter(r=>r.rag==='R').sort((a,b)=>b.deploy-a.deploy);
-  const amb=leaves.filter(r=>r.rag==='A').sort((a,b)=>b.deploy-a.deploy);
+  let leaves=merged.filter(r=>r.isLeaf);
+  if(alPOT)leaves=leaves.filter(r=>r.pot===alPOT);
+  if(alTower)leaves=leaves.filter(r=>alTowerOf(r.wbsKey)===alTower);
+  if(alPhase)leaves=leaves.filter(r=>phaseOf(r.wbsKey)===alPhase);
+  const over=leaves.filter(r=>(!alRAG||alRAG==='OVER')&&r.rag==='OVER').sort((a,b)=>b.deploy-a.deploy);
+  const red=leaves.filter(r=>(!alRAG||alRAG==='R')&&r.rag==='R').sort((a,b)=>b.deploy-a.deploy);
+  const amb=leaves.filter(r=>(!alRAG||alRAG==='A')&&r.rag==='A').sort((a,b)=>b.deploy-a.deploy);
   const tB=sm(leaves,'budget'),tA=sm(leaves,'actual');
+  const alCountEl=document.getElementById('al-count');
+  if(alCountEl)alCountEl.textContent=(over.length+red.length+amb.length)+' flagged';
   document.getElementById('k-over').textContent=over.length;
   document.getElementById('k-over-s').textContent=over.length?cr(sm(over,'actual'))+' over budget':'none';
   document.getElementById('k-red').textContent=red.length;
@@ -1063,9 +1097,14 @@ function renderLocked(){
 function renderRecurring(){
   const selPOT=document.getElementById('rec-pot').value;
   const selPat=document.getElementById('rec-pat').value;
+  const selRecTower=document.getElementById('rec-tower')?.value||'';
+  const selRecPhase=document.getElementById('rec-phase')?.value||'';
+  function recTowerOf(wk){const m=(wk||'').match(/GDR(\d{3})/);return m?'GDR'+m[1]:null;}
   let rows=[...recurring];
   if(selPOT)rows=rows.filter(r=>r.pot===selPOT);
   if(selPat)rows=rows.filter(r=>r.recur===selPat);
+  if(selRecTower)rows=rows.filter(r=>recTowerOf(r.wbsKey)===selRecTower);
+  if(selRecPhase)rows=rows.filter(r=>phaseOf(r.wbsKey)===selRecPhase);
   const rR=rows.filter(r=>r.recur==='REC'),sR=rows.filter(r=>r.recur==='SEMI');
   document.getElementById('frc').textContent=rR.length;
   document.getElementById('frt').textContent=cr(sm(rR,'actual'))+' total to date';
@@ -1172,6 +1211,11 @@ function populateSelects(){
   setOpts('txn-pot',pots,'All types');
   setOpts('txn-tower',allTowers,'All towers');
   setOpts('txn-phase',allPhases,'All phases');
+  setOpts('al-pot',pots,'All types');
+  setOpts('al-tower',allTowers,'All towers');
+  setOpts('al-phase',allPhases,'All phases');
+  setOpts('rec-tower',allTowers,'All towers');
+  setOpts('rec-phase',allPhases,'All phases');
 }
 
 function updateNavBadges(){
@@ -1197,7 +1241,8 @@ function setActFilter(v){
 
 ['flow-month','flow-pot','flow-tower','flow-phase'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFlow));
 ['low-pot','low-tower','low-phase','locked-pot','locked-tower','locked-phase'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLocked));
-['rec-pot','rec-pat'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderRecurring));
+['rec-pot','rec-pat','rec-tower','rec-phase'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderRecurring));
+['al-pot','al-tower','al-phase','al-rag'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderAlerts));
 ['w-sfx','w-pot','w-rag','w-rec','w-tower','w-phase'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderWBS));
 
 document.querySelectorAll('[data-col]').forEach(th=>{
@@ -1365,6 +1410,8 @@ function clearFilters(prefix){
     low:['low-pot','low-tower','low-phase'],
     w:['w-sfx','w-pot','w-rag','w-rec','w-tower','w-phase'],
     txn:['txn-month','txn-pot','txn-tower','txn-phase'],
+    al:['al-pot','al-tower','al-phase','al-rag'],
+    rec:['rec-pot','rec-pat','rec-tower','rec-phase'],
   };
   (ids[prefix]||[]).forEach(id=>{
     const el=document.getElementById(id);
@@ -1377,6 +1424,8 @@ function clearFilters(prefix){
   } else if(prefix==='flow')renderFlow();
   else if(prefix==='locked'||prefix==='low')renderLocked();
   else if(prefix==='w')renderWBS();
+  else if(prefix==='al')renderAlerts();
+  else if(prefix==='rec')renderRecurring();
 }
 
 // ── TRANSACTIONS ───────────────────────────────────
