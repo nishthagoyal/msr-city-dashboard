@@ -236,6 +236,9 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
     </div>
 
     <div class="nav-section">Detail</div>
+    <div class="nav-item" data-nav="summary" onclick="switchNav('summary')">
+      <span class="nav-icon">▦</span> Summary by Type
+    </div>
     <div class="nav-item" data-nav="wbs" onclick="switchNav('wbs')">
       <span class="nav-icon">≡</span> Full WBS Table
     </div>
@@ -521,6 +524,34 @@ body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-
             <th data-col="recur">Pattern</th><th data-col="rag">RAG</th>
           </tr></thead>
           <tbody id="wbs-body"></tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ── SUMMARY BY TYPE ── -->
+    <div class="pg" id="pg-summary">
+      <div class="page-title">Summary by Cost Type</div>
+      <div class="page-sub">Budget, actuals, committed and balance rolled up by cost type — leaf nodes only</div>
+      <div class="month-filters" style="margin-bottom:1rem">
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">Tower</label>
+        <select class="mf-sel" id="sum-tower"><option value="">All towers</option></select>
+        <label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Phase</label>
+        <select class="mf-sel" id="sum-phase"><option value="">All phases</option></select>
+        <button class="mf-tag" onclick="clearFilters('sum')" style="margin-left:4px;cursor:pointer">✕ Clear</button>
+      </div>
+      <div class="tw"><div class="tw-scroll">
+        <table class="dt" id="sum-table">
+          <thead><tr>
+            <th>Cost Type</th>
+            <th style="text-align:right">WBS Codes</th>
+            <th style="text-align:right">Budget (Cr)</th>
+            <th style="text-align:right">Actual (Cr)</th>
+            <th style="text-align:right">Act %</th>
+            <th style="text-align:right">Committed (Cr)</th>
+            <th style="text-align:right">Deploy %</th>
+            <th style="text-align:right">Balance (Cr)</th>
+          </tr></thead>
+          <tbody id="sum-body"></tbody>
         </table>
       </div></div>
     </div>
@@ -951,6 +982,7 @@ function renderAll(){
   renderFlow();
   renderLocked();
   renderRecurring();
+  renderSummary();
   renderWBS();
   renderTxn();
   updateNavBadges();
@@ -1186,8 +1218,23 @@ function renderWBS(){
   if(selPhaseW)rows=rows.filter(r=>phaseOf(r.wbsKey)===selPhaseW);
   rows.sort((a,b)=>{let va=a[wbsSortCol],vb=b[wbsSortCol];if(va<vb)return -wbsSortDir;if(va>vb)return wbsSortDir;return 0;});
   document.getElementById('w-count').textContent=rows.length.toLocaleString()+' rows';
+  // Totals row
+  const wTotB=rows.reduce((s,r)=>s+(r.budget||0),0);
+  const wTotA=rows.reduce((s,r)=>s+(r.actual||0),0);
+  const wTotC=rows.reduce((s,r)=>s+(r.commit||0),0);
+  const wTotBal=rows.reduce((s,r)=>s+(r.balance||0),0);
+  const wTotalsRow=`<tr style="background:var(--paper2);font-weight:600;position:sticky;bottom:0;z-index:1">
+    <td colspan="3" style="font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink3)">Total (${rows.length.toLocaleString()} rows)</td>
+    <td class="nr">${cr(wTotB)}</td>
+    <td class="nr">${cr(wTotA)}</td>
+    <td>${pctBar(wTotB>0?wTotA/wTotB:0,'#888')}</td>
+    <td class="nr">${cr(wTotC)}</td>
+    <td>${pctBar(wTotB>0?(wTotA+wTotC)/wTotB:0,'#888')}</td>
+    <td class="${wTotBal<0?'neg':'pos'}">${cr(wTotBal)}</td>
+    <td colspan="2"></td>
+  </tr>`;
   const ragColors={'OVER':'#c0392b','R':'#c0392b','A':'#b5620a','G':'#2e6b3e'};
-  document.getElementById('wbs-body').innerHTML=rows.map(r=>{
+  const wbsBodyRows=rows.map(r=>{
     const rowCls=r.isLeaf&&r.rag==='OVER'?'over-row':r.isLeaf&&r.actpct<0.3&&r.budget>0.05?'low-row':'';
     return`<tr class="${rowCls}">
       <td class="mono">${r.wbs}</td>
@@ -1203,6 +1250,7 @@ function renderWBS(){
       <td><span class="rag ${r.rag}">${r.rag}</span></td>
     </tr>`;
   }).join('') || '<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--ink3)">No rows match filters</td></tr>';
+  document.getElementById('wbs-body').innerHTML=wbsBodyRows+(rows.length>0?wTotalsRow:'');
 }
 
 function populateSelects(){
@@ -1237,6 +1285,8 @@ function populateSelects(){
   setOpts('al-phase',allPhases,'All phases');
   setOpts('rec-tower',allTowers,'All towers');
   setOpts('rec-phase',allPhases,'All phases');
+  setOpts('sum-tower',allTowers,'All towers');
+  setOpts('sum-phase',allPhases,'All phases');
 }
 
 function updateNavBadges(){
@@ -1431,6 +1481,64 @@ async function loadHistory(){
   }catch(e){console.error(e);}
 }
 
+// ── SUMMARY BY TYPE ───────────────────────────────
+function renderSummary(){
+  const selTower=document.getElementById('sum-tower')?.value||'';
+  const selPhase=document.getElementById('sum-phase')?.value||'';
+  function towerOf(wk){const m=(wk||'').match(/GDR(\d{3})/);return m?'GDR'+m[1]:null;}
+
+  let rows=merged.filter(r=>r.isLeaf);
+  if(selTower)rows=rows.filter(r=>towerOf(r.wbsKey)===selTower);
+  if(selPhase)rows=rows.filter(r=>phaseOf(r.wbsKey)===selPhase);
+
+  // Group by POT
+  const byPot={};
+  rows.forEach(r=>{
+    if(!byPot[r.pot])byPot[r.pot]={pot:r.pot,count:0,budget:0,actual:0,commit:0};
+    byPot[r.pot].count++;
+    byPot[r.pot].budget+=r.budget||0;
+    byPot[r.pot].actual+=r.actual||0;
+    byPot[r.pot].commit+=r.commit||0;
+  });
+
+  const sorted=Object.values(byPot).sort((a,b)=>b.budget-a.budget);
+  const totals={count:0,budget:0,actual:0,commit:0};
+  sorted.forEach(r=>{totals.count+=r.count;totals.budget+=r.budget;totals.actual+=r.actual;totals.commit+=r.commit;});
+
+  const ragColor=(act,bud)=>{
+    if(!bud)return'var(--ink3)';
+    const p=act/bud;
+    return p>1?'var(--over)':p>0.95?'var(--red)':p>0.75?'var(--amber)':'var(--grn)';
+  };
+
+  document.getElementById('sum-body').innerHTML=sorted.map(r=>{
+    const balance=r.budget-r.actual-r.commit;
+    const actPct=r.budget>0?r.actual/r.budget:0;
+    const depPct=r.budget>0?(r.actual+r.commit)/r.budget:0;
+    return`<tr>
+      <td style="font-weight:500">${r.pot}</td>
+      <td class="nr">${r.count}</td>
+      <td class="nr">${cr(r.budget)}</td>
+      <td class="nr" style="color:${ragColor(r.actual,r.budget)}">${cr(r.actual)}</td>
+      <td class="nr" style="color:${ragColor(r.actual,r.budget)}">${pct(actPct)}</td>
+      <td class="nr">${cr(r.commit)}</td>
+      <td class="nr">${pct(depPct)}</td>
+      <td class="${balance<0?'neg':'pos'}">${cr(balance)}</td>
+    </tr>`;
+  }).join('')+`<tr style="background:var(--paper2);font-weight:600;border-top:2px solid var(--paper3)">
+    <td>TOTAL</td>
+    <td class="nr">${totals.count}</td>
+    <td class="nr">${cr(totals.budget)}</td>
+    <td class="nr">${cr(totals.actual)}</td>
+    <td class="nr">${pct(totals.budget>0?totals.actual/totals.budget:0)}</td>
+    <td class="nr">${cr(totals.commit)}</td>
+    <td class="nr">${pct(totals.budget>0?(totals.actual+totals.commit)/totals.budget:0)}</td>
+    <td class="${(totals.budget-totals.actual-totals.commit)<0?'neg':'pos'}">${cr(totals.budget-totals.actual-totals.commit)}</td>
+  </tr>`;
+}
+
+['sum-tower','sum-phase'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderSummary));
+
 // ── CLEAR FILTERS ─────────────────────────────────
 function clearFilters(prefix){
   const ids={
@@ -1441,6 +1549,7 @@ function clearFilters(prefix){
     txn:['txn-month','txn-pot','txn-tower','txn-phase'],
     al:['al-pot','al-tower','al-phase','al-rag'],
     rec:['rec-pot','rec-pat','rec-tower','rec-phase'],
+    sum:['sum-tower','sum-phase'],
   };
   (ids[prefix]||[]).forEach(id=>{
     const el=document.getElementById(id);
@@ -1455,6 +1564,7 @@ function clearFilters(prefix){
   else if(prefix==='w')renderWBS();
   else if(prefix==='al')renderAlerts();
   else if(prefix==='rec')renderRecurring();
+  else if(prefix==='sum')renderSummary();
 }
 
 // ── TRANSACTIONS ───────────────────────────────────
