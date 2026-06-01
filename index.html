@@ -859,16 +859,18 @@ function processData(wbsRows,mRows){
   // Build global wbsMap and enrich monthly rows with correct POT
   wbsMap={};
   merged.forEach(r=>wbsMap[r.wbsKey]=r);
-  // Use pot column from monthly_spend directly (most accurate - comes from SAP Partner Object Type)
+  // Use SAP Partner Object Type from monthly_spend pot column directly
   mRows.forEach(r=>{
     const rawPot=(r.pot&&r.pot.trim()&&r.pot!=='OTHER')?r.pot.trim():null;
     r._pot=rawPot||potFromWbs(r._wk);
   });
-  // Update merged rows' pot using monthly data if monthly has a more specific POT
+  // Option 2: Override ALL merged row POTs with SAP POT from monthly_spend
+  // This makes Full WBS Table, Alerts, Locked use the same categories as transactions
   const wkPotMap={};
   mRows.forEach(r=>{if(r._pot&&r._pot!=='OTHER')wkPotMap[r._wk]=r._pot;});
   merged.forEach(r=>{
-    if(wkPotMap[r.wbsKey]&&r.pot==='OTHER')r.pot=wkPotMap[r.wbsKey];
+    const sapPot=wkPotMap[r.wbsKey];
+    if(sapPot)r.pot=sapPot; // Always override with SAP POT if available
   });
 
   // Add project-level actuals (monthly rows with no matching snapshot entry) to total
