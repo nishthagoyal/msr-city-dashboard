@@ -621,6 +621,10 @@ const SEG_POT={
   CT:'CONST',PC:'PMC',
   DM:'DM Fees',DF:'DM Fees',
   CJ:'COC',RS:'COC',
+  AT:'CONST',OT:'CONST',
+  DI:'BROKER',IB:'BROKER',
+  BC:'COC',EM:'COC',PE:'COC',SC:'COC',
+  OC:'COC',MN:'SITEOH',
 };
 const CO_POT={
   'Financial & Interest Charges -GDR':'FINAN',
@@ -1313,7 +1317,9 @@ async function parseCost(file){
     if(isNaN(amt)||amt===0)continue;
     // Raw amounts are already signed (negatives = credits), Dr/Cr col is redundant
     const signed=amt/1e7;
-    const pot=derivePOT(wbsRaw,String(row[6]||''),String(row[30]||''));
+    // Use Partner Object Type directly from col 30 — clean in this file
+    const rawPot=String(row[30]||'').trim();
+    const pot=rawPot||derivePOT(wbsRaw,String(row[6]||''),String(row[30]||''));
     const wbsKey=wbsRaw.replace(/[-\.]/g,'').toUpperCase();
     let month=null;
     const rd=row[1];
